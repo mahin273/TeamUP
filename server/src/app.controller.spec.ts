@@ -15,8 +15,11 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('should return health status', () => {
+      const health = appController.getRoot();
+      expect(health.status).toBe('ok');
+      expect(health.service).toBe('TeamUp API');
+      expect(health.timestamp).toBeDefined();
     });
   });
 });
