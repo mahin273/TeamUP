@@ -1,0 +1,407 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------
+// Enums
+// ------------------------------------------------------
+
+enum UserRole {
+  STUDENT
+  ADMIN
+}
+
+enum ExperienceLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum ProjectStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
+}
+
+enum ProjectRole {
+  LEADER
+  MEMBER
+}
+
+enum MemberStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  TESTING
+  DONE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum MeetingStatus {
+  VOTING
+  CONFIRMED
+  CANCELLED
+}
+
+enum EventType {
+  MEETING
+  DEADLINE
+  MILESTONE
+}
+
+enum BookmarkType {
+  PROJECT
+  IDEA
+}
+
+// ------------------------------------------------------
+// Identity & Profiles Domain
+// ------------------------------------------------------
+
+model User {
+  id                  String           @id @default(uuid())
+  email               String           @unique
+  password            String
+  role                UserRole         @default(STUDENT)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  // Relationships
+  profile             Profile?
+  refreshTokens       RefreshToken[]
+  createdProjects     Project[]        @relation("CreatedProjects")
+  projectMembers      ProjectMember[]
+  assignedTasks       Task[]           @relation("AssignedTasks")
+  sentMessages        Message[]        @relation("SentMessages")
+  uploadedFiles       ProjectFile[]    @relation("UploadedFiles")
+  meetingVotes        MeetingVote[]
+  authoredIdeas       Idea[]           @relation("AuthoredIdeas")
+  bookmarks           Bookmark[]
+  notifications       Notification[]
+  evaluationsGiven    PeerEvaluation[] @relation("EvaluationsGiven")
+  evaluationsReceived PeerEvaluation[] @relation("EvaluationsReceived")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  tokenHash String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Profile {
+  id              String          @id @default(uuid())
+  userId          String          @unique
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName        String
+  bio             String?         @db.Text
+  avatarUrl       String?
+  department      String?
+  semester        String?
+  availability    Boolean         @default(true)
+  experienceLevel ExperienceLevel @default(BEGINNER)
+  githubUsername  String?
+  githubStats     Json?
+  portfolioUrl    String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  skills          ProfileSkill[]
+
+  @@index([semester])
+  @@index([experienceLevel])
+}
+
+model Skill {
+  id                    String                 @id @default(uuid())
+  name                  String                 @unique
+  category              String?
+  profileSkills         ProfileSkill[]
+  projectRequiredSkills ProjectRequiredSkill[]
+}
+
+model ProfileSkill {
+  id                 String           @id @default(uuid())
+  profileId          String
+  profile            Profile          @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  skillId            String
+  skill              Skill            @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  yearsOfExperience  Float?           @default(0)
+  proficiencyLevel   ExperienceLevel? @default(BEGINNER)
+
+  @@unique([profileId, skillId])
+  @@index([profileId])
+  @@index([skillId])
+}
+
+// ------------------------------------------------------
+// Marketplace & Projects Domain
+// ------------------------------------------------------
+
+model Project {
+  id             String                 @id @default(uuid())
+  title          String
+  description    String                 @db.Text
+  domain         String
+  semester       String
+  status         ProjectStatus          @default(OPEN)
+  maxMembers     Int                    @default(4)
+  creatorId      String
+  creator        User                   @relation("CreatedProjects", fields: [creatorId], references: [id], onDelete: Cascade)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  // Relationships
+  members        ProjectMember[]
+  requiredSkills ProjectRequiredSkill[]
+  tasks          Task[]
+  meetings       Meeting[]
+  messages       Message[]
+  files          ProjectFile[]
+  calendarEvents CalendarEvent[]
+  evaluations    PeerEvaluation[]
+
+  @@index([domain])
+  @@index([semester])
+  @@index([status])
+  @@index([creatorId])
+}
+
+model ProjectMember {
+  id        String       @id @default(uuid())
+  projectId String
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      ProjectRole  @default(MEMBER)
+  status    MemberStatus @default(PENDING)
+  joinedAt  DateTime     @default(now())
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+model ProjectRequiredSkill {
+  id                String          @id @default(uuid())
+  projectId         String
+  project           Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  skillId           String
+  skill             Skill           @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  minimumExperience ExperienceLevel @default(BEGINNER)
+
+  @@unique([projectId, skillId])
+  @@index([projectId])
+  @@index([skillId])
+}
+
+// ------------------------------------------------------
+// Workspace & Collaboration Domain
+// ------------------------------------------------------
+
+model Task {
+  id          String     @id @default(uuid())
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  description String?    @db.Text
+  status      TaskStatus @default(TODO)
+  priority    Priority   @default(MEDIUM)
+  assigneeId  String?
+  assignee    User?      @relation("AssignedTasks", fields: [assigneeId], references: [id], onDelete: SetNull)
+  dueDate     DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([projectId])
+  @@index([assigneeId])
+  @@index([status])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  senderId  String?
+  sender    User?    @relation("SentMessages", fields: [senderId], references: [id], onDelete: SetNull)
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt])
+}
+
+model ProjectFile {
+  id         String   @id @default(uuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploaderId String?
+  uploader   User?    @relation("UploadedFiles", fields: [uploaderId], references: [id], onDelete: SetNull)
+  fileName   String
+  fileUrl    String
+  fileSize   Int
+  mimeType   String
+  createdAt  DateTime @default(now())
+
+  @@index([projectId])
+}
+
+// ------------------------------------------------------
+// Scheduling & Calendar Domain
+// ------------------------------------------------------
+
+model Meeting {
+  id             String        @id @default(uuid())
+  projectId      String
+  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?       @db.Text
+  status         MeetingStatus @default(VOTING)
+  selectedSlotId String?       @unique
+  selectedSlot   MeetingSlot?  @relation("SelectedMeetingSlot", fields: [selectedSlotId], references: [id], onDelete: SetNull)
+  slots          MeetingSlot[] @relation("MeetingSlots")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([projectId])
+}
+
+model MeetingSlot {
+  id                 String        @id @default(uuid())
+  meetingId          String
+  meeting            Meeting       @relation("MeetingSlots", fields: [meetingId], references: [id], onDelete: Cascade)
+  startTime          DateTime
+  endTime            DateTime
+  votes              MeetingVote[]
+  confirmedInMeeting Meeting?      @relation("SelectedMeetingSlot")
+  createdAt          DateTime      @default(now())
+
+  @@index([meetingId])
+}
+
+model MeetingVote {
+  id        String      @id @default(uuid())
+  slotId    String
+  slot      MeetingSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@unique([slotId, userId])
+  @@index([slotId])
+  @@index([userId])
+}
+
+model CalendarEvent {
+  id          String    @id @default(uuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  description String?   @db.Text
+  eventType   EventType @default(DEADLINE)
+  startDate   DateTime
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([projectId, startDate])
+}
+
+// ------------------------------------------------------
+// Discovery & Ideas Domain
+// ------------------------------------------------------
+
+model Idea {
+  id             String   @id @default(uuid())
+  title          String
+  description    String   @db.Text
+  domain         String
+  suggestedStack String[]
+  authorId       String?
+  author         User?    @relation("AuthoredIdeas", fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([domain])
+  @@index([authorId])
+}
+
+model CachedIdeaQuery {
+  id           String   @id @default(uuid())
+  queryHash    String   @unique
+  domain       String
+  techInterest String
+  resultJson   Json
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([queryHash])
+  @@index([expiresAt])
+}
+
+model Bookmark {
+  id         String       @id @default(uuid())
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetType BookmarkType
+  targetId   String
+  createdAt  DateTime     @default(now())
+
+  @@unique([userId, targetType, targetId])
+  @@index([userId])
+  @@index([targetType, targetId])
+}
+
+// ------------------------------------------------------
+// Notifications & Peer Evaluation Domain
+// ------------------------------------------------------
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  type      String
+  data      Json?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}
+
+model PeerEvaluation {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  evaluatorId String
+  evaluator   User     @relation("EvaluationsGiven", fields: [evaluatorId], references: [id], onDelete: Cascade)
+  evaluateeId String
+  evaluatee   User     @relation("EvaluationsReceived", fields: [evaluateeId], references: [id], onDelete: Cascade)
+  score       Float
+  feedback    String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@unique([projectId, evaluatorId, evaluateeId])
+  @@index([evaluateeId])
+  @@index([projectId])
+}
