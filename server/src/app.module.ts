@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { SkillsModule } from './skills/skills.module';
 import { ProjectsModule } from './projects/projects.module';
+import { WorkspaceModule } from './workspace/workspace.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ProjectsModule } from './projects/projects.module';
     ProfilesModule,
     SkillsModule,
     ProjectsModule,
+    WorkspaceModule,
   ],
   controllers: [AppController],
   providers: [AppService],
