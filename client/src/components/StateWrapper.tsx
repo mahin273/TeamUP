@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Animated,
   ViewStyle,
+  StyleProp,
 } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { Button } from './Button';
@@ -22,7 +23,7 @@ export interface StateWrapperProps {
   errorMessage?: string;
   errorCode?: string;
   onRetry?: () => void;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 export const StateWrapper: React.FC<StateWrapperProps> = ({

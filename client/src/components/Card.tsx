@@ -4,6 +4,7 @@ import {
   StyleSheet,
   Animated,
   ViewStyle,
+  StyleProp,
   View,
   Platform,
 } from 'react-native';
@@ -13,7 +14,7 @@ import { useTheme } from '../theme/ThemeContext';
 export interface CardProps {
   children: React.ReactNode;
   onPress?: () => void;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   variant?: 'surface' | 'surfaceVariant' | 'outline';
   enableHaptics?: boolean;
 }

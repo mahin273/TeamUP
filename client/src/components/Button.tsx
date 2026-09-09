@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   ViewStyle,
   TextStyle,
+  StyleProp,
   Platform,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
@@ -18,8 +19,8 @@ export interface ButtonProps {
   variant?: 'primary' | 'secondary' | 'tertiary' | 'outline';
   disabled?: boolean;
   loading?: boolean;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
   enableHaptics?: boolean;
 }
 
@@ -101,7 +102,7 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   return (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+    <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, style]}>
       <Pressable
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
@@ -117,7 +118,6 @@ export const Button: React.FC<ButtonProps> = ({
             paddingVertical: spacing.sm + 4,
             paddingHorizontal: spacing.lg,
           },
-          style,
         ]}
       >
         {loading ? (

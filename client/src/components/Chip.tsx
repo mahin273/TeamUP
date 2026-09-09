@@ -1,13 +1,13 @@
 import React from 'react';
-import { Pressable, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { Pressable, Text, StyleSheet, ViewStyle, TextStyle, StyleProp } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 
 export interface ChipProps {
   label: string;
   selected?: boolean;
   onPress?: () => void;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
   variant?: 'primary' | 'secondary' | 'tertiary';
 }
 

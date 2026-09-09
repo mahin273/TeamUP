@@ -1,15 +1,28 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { tokenStorage } from '../services/tokenStorage';
-import { api } from '../api/client';
+import { api, ApiError } from '../api/client';
+
+export interface ProfileSkill {
+  id: string;
+  skillName: string;
+  category?: string;
+  yearsOfExp?: number;
+}
 
 export interface UserProfile {
-  id: string;
+  id?: string;
+  userId?: string;
   email: string;
   fullName: string;
-  avatarUrl?: string;
   bio?: string;
-  skills?: string[];
+  avatarUrl?: string;
+  department?: string;
+  semester?: string;
+  availability?: boolean;
+  experienceLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   githubUsername?: string;
+  portfolioUrl?: string;
+  skills?: ProfileSkill[];
 }
 
 interface AuthContextType {
@@ -21,6 +34,7 @@ interface AuthContextType {
   register: (fullName: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updatedUser: Partial<UserProfile>) => void;
+  fetchProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,6 +43,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const fetchProfile = async () => {
+    try {
+      const profileData = await api.get<UserProfile>('/profiles/me');
+      setUser(profileData);
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'UNAUTHORIZED') {
+        await tokenStorage.clearAll();
+        setToken(null);
+        setUser(null);
+      }
+      throw err;
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -78,13 +106,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
       });
 
-      if (res.accessToken) {
+      if (res && res.accessToken) {
         await tokenStorage.setAccessToken(res.accessToken);
         if (res.refreshToken) {
           await tokenStorage.setRefreshToken(res.refreshToken);
         }
         setToken(res.accessToken);
-        setUser(res.user || null);
+
+        // Fetch or assign full user profile
+        if (res.user) {
+          setUser(res.user);
+        } else {
+          try {
+            const profile = await api.get<UserProfile>('/profiles/me');
+            setUser(profile);
+          } catch {
+            setUser({ email, fullName: email.split('@')[0] });
+          }
+        }
       }
     } finally {
       setIsLoading(false);
@@ -100,13 +139,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
       });
 
-      if (res.accessToken) {
+      if (res && res.accessToken) {
         await tokenStorage.setAccessToken(res.accessToken);
         if (res.refreshToken) {
           await tokenStorage.setRefreshToken(res.refreshToken);
         }
         setToken(res.accessToken);
-        setUser(res.user || null);
+        setUser(res.user || { email, fullName });
       }
     } finally {
       setIsLoading(false);
@@ -139,6 +178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         updateUser,
+        fetchProfile,
       }}
     >
       {children}

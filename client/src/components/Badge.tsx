@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, TextStyle, StyleProp } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 
 export interface BadgeProps {
   label: string | number;
   variant?: 'primary' | 'secondary' | 'tertiary' | 'error';
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
 }
 
 export const Badge: React.FC<BadgeProps> = ({
