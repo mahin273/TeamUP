@@ -13,7 +13,10 @@ jobs:
   build-and-release:
     name: Compile & Release APK
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
+
+    env:
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m"
 
     steps:
       - name: Checkout Code
@@ -23,8 +26,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: client/package-lock.json
 
       - name: Setup Java 17 (Temurin)
         uses: actions/setup-java@v4
@@ -35,23 +36,16 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Setup Gradle Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('client/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
       - name: Install Client Dependencies
         working-directory: ./client
-        run: npm ci
+        run: npm install --legacy-peer-deps
 
       - name: Prebuild Android Native Project
         working-directory: ./client
         run: npx expo prebuild --platform android --no-install
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Make Gradle Wrapper Executable
         working-directory: ./client/android
@@ -64,12 +58,14 @@ jobs:
       - name: Prepare APK Asset
         run: |
           mkdir -p release-assets
-          APK_PATH=$(find client/android/app/build/outputs/apk/ -name "*.apk" | head -n 1)
+          echo "Listing all built APK files:"
+          find client/android/app/build/outputs/apk/ -type f -name "*.apk"
+          APK_PATH=$(find client/android/app/build/outputs/apk/ -type f -name "*.apk" | head -n 1)
           if [ -z "$APK_PATH" ]; then
             echo "Error: No APK file found in build outputs!"
             exit 1
           fi
-          echo "Found APK at: $APK_PATH"
+          echo "Selected APK: $APK_PATH"
           cp "$APK_PATH" release-assets/TeamUp.apk
           ls -lh release-assets/
 
@@ -92,15 +88,15 @@ jobs:
             Automated Android APK build compiled from commit `${{ github.sha }}`.
 
             ### 📱 Download & Install Instructions:
-            1. Download **`TeamUp.apk`** below to your Android device.
+            1. Download **`TeamUp.apk`** below directly to your Android device.
             2. Open the file to install the TeamUp application.
-            3. Enjoy testing the university collaboration mobile client!
+            3. Launch the app and test the university project collaboration features!
 
             ---
             - **Commit:** `${{ github.sha }}`
             - **Triggered By:** @${{ github.actor }}
             - **Branch:** `${{ github.ref_name }}`
-            - **Date:** ${{ github.event.head_commit.timestamp }}
+            - **Timestamp:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')
           files: release-assets/TeamUp.apk
           draft: false
           prerelease: false
