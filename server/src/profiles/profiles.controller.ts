@@ -55,8 +55,14 @@ export class ProfilesController {
     return this.profilesService.removeSkillFromProfile(user.userId, skillId);
   }
 
+  @Get(':id/github')
+  async getGithubStats(@Param('id') id: string) {
+    return this.profilesService.getGithubStats(id);
+  }
+
   @Get(':id')
   async getProfileById(@Param('id') id: string) {
     return this.profilesService.getProfileById(id);
   }
 }
+

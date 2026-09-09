@@ -16,6 +16,7 @@ import { Badge } from '../../components/Badge';
 import { StateWrapper, ScreenState } from '../../components/StateWrapper';
 import { useAuth } from '../../context/AuthContext';
 import { ProfileEditScreen } from './ProfileEditScreen';
+import { GitHubStatsCard } from '../../components/GitHubStatsCard';
 import { ApiError } from '../../api/client';
 
 export const ProfileScreen = () => {
@@ -233,6 +234,13 @@ export const ProfileScreen = () => {
                 </Text>
               )}
             </Card>
+
+            {/* GitHub Integration Stats Bento Card */}
+            <GitHubStatsCard
+              profileId={user.id || user.userId || 'me'}
+              githubUsername={user.githubUsername}
+              onConnectPress={() => setIsEditing(true)}
+            />
 
             {/* Links Bento Card */}
             {(user.githubUsername || user.portfolioUrl) && (
