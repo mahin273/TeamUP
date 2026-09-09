@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 .env
 node_modules
+.expo/
+android/
+ios/
+*.keystore
+*.jks
