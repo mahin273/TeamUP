@@ -7,11 +7,17 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.teamup.app"
+    },
+    "android": {
+      "package": "com.teamup.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F172A"
+      }
     },
     "web": {
       "bundler": "metro"
     }
   }
 }
-

@@ -1,0 +1,108 @@
+name: Build & Release Android APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Compile & Release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Setup Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('client/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Install Client Dependencies
+        working-directory: ./client
+        run: npm ci
+
+      - name: Prebuild Android Native Project
+        working-directory: ./client
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Make Gradle Wrapper Executable
+        working-directory: ./client/android
+        run: chmod +x gradlew
+
+      - name: Build Android Release APK
+        working-directory: ./client/android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Prepare APK Asset
+        run: |
+          mkdir -p release-assets
+          APK_PATH=$(find client/android/app/build/outputs/apk/ -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            echo "Error: No APK file found in build outputs!"
+            exit 1
+          fi
+          echo "Found APK at: $APK_PATH"
+          cp "$APK_PATH" release-assets/TeamUp.apk
+          ls -lh release-assets/
+
+      - name: Set Release Metadata
+        id: meta
+        run: |
+          TAG_NAME="v1.0.0-build.${{ github.run_number }}"
+          RELEASE_TITLE="TeamUp Android APK v1.0.0 (Build #${{ github.run_number }})"
+          echo "tag=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "title=$RELEASE_TITLE" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release & Upload APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.title }}
+          body: |
+            ## 🚀 TeamUp Android App — Build #${{ github.run_number }}
+
+            Automated Android APK build compiled from commit `${{ github.sha }}`.
+
+            ### 📱 Download & Install Instructions:
+            1. Download **`TeamUp.apk`** below to your Android device.
+            2. Open the file to install the TeamUp application.
+            3. Enjoy testing the university collaboration mobile client!
+
+            ---
+            - **Commit:** `${{ github.sha }}`
+            - **Triggered By:** @${{ github.actor }}
+            - **Branch:** `${{ github.ref_name }}`
+            - **Date:** ${{ github.event.head_commit.timestamp }}
+          files: release-assets/TeamUp.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
