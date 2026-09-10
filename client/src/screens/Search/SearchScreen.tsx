@@ -15,6 +15,7 @@ import { Chip } from '../../components/Chip';
 import { StateWrapper, ScreenState } from '../../components/StateWrapper';
 import { ProjectCard, ProjectListing } from '../../components/ProjectCard';
 import { api } from '../../api/client';
+import { bookmarkService } from '../../services/bookmarkService';
 
 const DOMAIN_OPTIONS = ['All', 'Fintech', 'Healthcare', 'Education', 'AI & ML', 'IoT', 'Cybersecurity'];
 const TECH_OPTIONS = ['All', 'React Native', 'NestJS', 'Python', 'PostgreSQL', 'TypeScript', 'Flutter'];
@@ -143,12 +144,28 @@ export const SearchScreen: React.FC = () => {
     (selectedSemester !== 'All' ? 1 : 0) +
     (selectedStatus !== 'All' ? 1 : 0);
 
-  const handleBookmarkToggle = (projectId: string) => {
+  const handleBookmarkToggle = async (projectId: string) => {
+    const targetProject = projects.find((p) => p.id === projectId);
+
+    // Optimistic UI update
     setProjects((prev) =>
       prev.map((item) =>
         item.id === projectId ? { ...item, isBookmarked: !item.isBookmarked } : item
       )
     );
+
+    if (targetProject) {
+      try {
+        await bookmarkService.toggleBookmark(targetProject);
+      } catch {
+        // Revert optimistic state on error
+        setProjects((prev) =>
+          prev.map((item) =>
+            item.id === projectId ? { ...item, isBookmarked: targetProject.isBookmarked } : item
+          )
+        );
+      }
+    }
   };
 
   return (

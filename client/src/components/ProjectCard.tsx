@@ -6,6 +6,9 @@ import { Badge } from './Badge';
 import { Chip } from './Chip';
 import { Button } from './Button';
 
+import * as Haptics from 'expo-haptics';
+import { Platform } from 'react-native';
+
 export interface ProjectListing {
   id: string;
   title: string;
@@ -47,6 +50,18 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
     }
   };
 
+  const handleBookmarkPress = () => {
+    if (!onBookmarkToggle) return;
+    if (Platform.OS !== 'web') {
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch {
+        // ignore haptics error in test environment
+      }
+    }
+    onBookmarkToggle(project.id);
+  };
+
   const skillsList = project.requiredSkills || project.techStack || [];
 
   return (
@@ -82,7 +97,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                   : colors.surfaceVariant,
               },
             ]}
-            onPress={() => onBookmarkToggle(project.id)}
+            onPress={handleBookmarkPress}
           >
             <Text style={{ fontSize: 16 }}>
               {project.isBookmarked ? '🔖' : '🏷️'}
