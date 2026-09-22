@@ -8,7 +8,9 @@ import {
   Linking,
   TouchableOpacity,
 } from 'react-native';
+import { NavigationContext } from '@react-navigation/native';
 import { useTheme } from '../../theme/ThemeContext';
+import { AppHeader } from '../../components/AppHeader';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Chip } from '../../components/Chip';
@@ -19,7 +21,9 @@ import { ProfileEditScreen } from './ProfileEditScreen';
 import { GitHubStatsCard } from '../../components/GitHubStatsCard';
 import { api, ApiError } from '../../api/client';
 
-export const ProfileScreen = () => {
+export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation: propNav }) => {
+  const contextNav = React.useContext(NavigationContext);
+  const navigation = propNav || contextNav;
   const { colors, typography, spacing, isDark, toggleTheme } = useTheme();
   const { user, fetchProfile, logout, updateUser } = useAuth();
 
@@ -128,228 +132,234 @@ export const ProfileScreen = () => {
   const isProfileEmpty = !user?.fullName && !user?.email;
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      <StateWrapper
-        state={isProfileEmpty && screenState === 'populated' ? 'empty' : screenState}
-        emptyTitle="Profile Incomplete"
-        emptySubtitle="Add your bio, skills, and department details so project teams can discover you!"
-        emptyActionLabel="Complete Profile Now"
-        onEmptyAction={() => setIsEditing(true)}
-        errorMessage={errorMessage}
-        errorCode={errorCode}
-        onRetry={loadData}
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <AppHeader
+        title="Profile"
+        subtitle="Personal & Academic Info"
+        showBack={Boolean(navigation)}
+        onBack={() => {
+          if (navigation?.canGoBack?.()) {
+            navigation.goBack();
+          } else {
+            navigation.navigate('MainApp', { screen: 'More' });
+          }
+        }}
+      />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
-        {user && (
-          <View style={{ padding: spacing.md }}>
-            {/* Header Profile Bento Card */}
-            <Card style={styles.card}>
-              <View style={styles.heroProfileCol}>
-                <View
-                  style={[
-                    styles.avatarPlaceholder,
-                    { backgroundColor: colors.primaryContainer },
-                  ]}
-                >
-                  <Text style={{ fontSize: 32, fontWeight: '700', color: colors.onPrimaryContainer }}>
-                    {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
-                  </Text>
-                </View>
-
-                <Text
-                  style={[
-                    styles.heroName,
-                    {
-                      color: colors.onSurface,
-                      fontSize: typography.headlineMedium.fontSize,
-                      marginTop: spacing.xs,
-                    },
-                  ]}
-                >
-                  {user.fullName || 'Anonymous User'}
-                </Text>
-
-                <Text
-                  style={[
-                    styles.heroRole,
-                    { color: colors.onSurfaceVariant, marginTop: 2 },
-                  ]}
-                >
-                  {user.department || user.experienceLevel || 'Fullstack Developer'}
-                </Text>
-
-                {/* Teammate Identity Stats: Projects, Skills, Ideas */}
-                <View style={[styles.statsRow, { marginTop: spacing.md, backgroundColor: colors.surfaceVariant }]}>
-                  <View style={styles.statCol}>
-                    <Text style={[styles.statNumber, { color: colors.onSurface }]}>5</Text>
-                    <Text style={[styles.statLabel, { color: colors.onSurfaceVariant }]}>Projects</Text>
-                  </View>
-                  <View style={[styles.statDivider, { backgroundColor: colors.outlineVariant }]} />
-                  <View style={styles.statCol}>
-                    <Text style={[styles.statNumber, { color: colors.onSurface }]}>
-                      {user.skills ? user.skills.length : 12}
+        <StateWrapper
+          state={isProfileEmpty && screenState === 'populated' ? 'empty' : screenState}
+          emptyTitle="Profile Incomplete"
+          emptySubtitle="Add your bio, skills, and department details so project teams can discover you!"
+          emptyActionLabel="Complete Profile Now"
+          onEmptyAction={() => setIsEditing(true)}
+          errorMessage={errorMessage}
+          errorCode={errorCode}
+          onRetry={loadData}
+        >
+          {user && (
+            <View style={{ padding: spacing.md }}>
+              {/* Header Profile Bento Card */}
+              <Card style={styles.card}>
+                <View style={styles.heroProfileCol}>
+                  <View
+                    style={[
+                      styles.avatarPlaceholder,
+                      { backgroundColor: colors.primaryContainer },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 32, fontWeight: '700', color: colors.onPrimaryContainer }}>
+                      {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
                     </Text>
-                    <Text style={[styles.statLabel, { color: colors.onSurfaceVariant }]}>Skills</Text>
                   </View>
-                  <View style={[styles.statDivider, { backgroundColor: colors.outlineVariant }]} />
-                  <View style={styles.statCol}>
-                    <Text style={[styles.statNumber, { color: colors.onSurface }]}>8</Text>
-                    <Text style={[styles.statLabel, { color: colors.onSurfaceVariant }]}>Ideas</Text>
+
+                  <Text
+                    style={[
+                      styles.heroName,
+                      {
+                        color: colors.onSurface,
+                        fontSize: typography.headlineMedium.fontSize,
+                        marginTop: spacing.xs,
+                      },
+                    ]}
+                  >
+                    {user.fullName || 'Anonymous User'}
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.heroRole,
+                      { color: colors.onSurfaceVariant, marginTop: 2 },
+                    ]}
+                  >
+                    {user.department || user.experienceLevel || 'Fullstack Developer'}
+                  </Text>
+
+                  {/* Teammate Identity Stats: Projects, Skills, Ideas */}
+                  <View style={[styles.statsRow, { marginTop: spacing.md, backgroundColor: colors.surfaceVariant }]}>
+                    <View style={styles.statCol}>
+                      <Text style={[styles.statNumber, { color: colors.onSurface }]}>5</Text>
+                      <Text style={[styles.statLabel, { color: colors.onSurfaceVariant }]}>Projects</Text>
+                    </View>
+                    <View style={[styles.statDivider, { backgroundColor: colors.outlineVariant }]} />
+                    <View style={styles.statCol}>
+                      <Text style={[styles.statNumber, { color: colors.onSurface }]}>
+                        {user.skills ? user.skills.length : 12}
+                      </Text>
+                      <Text style={[styles.statLabel, { color: colors.onSurfaceVariant }]}>Skills</Text>
+                    </View>
+                    <View style={[styles.statDivider, { backgroundColor: colors.outlineVariant }]} />
+                    <View style={styles.statCol}>
+                      <Text style={[styles.statNumber, { color: colors.onSurface }]}>8</Text>
+                      <Text style={[styles.statLabel, { color: colors.onSurfaceVariant }]}>Ideas</Text>
+                    </View>
                   </View>
+
+                  {/* Primary Edit Profile Button - Normal compact app button */}
+                  <Button
+                    title="Edit Profile"
+                    onPress={() => setIsEditing(true)}
+                    variant="primary"
+                    style={{ alignSelf: 'center', minWidth: 160, maxWidth: 220, marginTop: spacing.md }}
+                  />
                 </View>
 
-                {/* Primary Edit Profile Button */}
+                {user.bio ? (
+                  <Text
+                    style={[
+                      styles.bio,
+                      {
+                        color: colors.onSurface,
+                        fontSize: typography.bodyMedium.fontSize,
+                        marginTop: spacing.md,
+                      },
+                    ]}
+                  >
+                    {user.bio}
+                  </Text>
+                ) : null}
+
+                {(user.department || user.semester) && (
+                  <View style={[styles.infoRow, { marginTop: spacing.sm }]}>
+                    {user.department && (
+                      <Chip label={user.department} variant="secondary" />
+                    )}
+                    {user.semester && (
+                      <Chip label={user.semester} variant="secondary" />
+                    )}
+                  </View>
+                )}
+              </Card>
+
+              {/* Skills Bento Card */}
+              {user.skills && user.skills.length > 0 && (
+                <Card style={[styles.card, { marginTop: spacing.md }]}>
+                  <Text
+                    style={[
+                      styles.sectionTitle,
+                      { color: colors.onSurface, fontSize: typography.titleMedium.fontSize },
+                    ]}
+                  >
+                    Technical Skills ({user.skills.length})
+                  </Text>
+                  <View style={[styles.chipRow, { marginTop: spacing.sm }]}>
+                    {user.skills.map((s, idx) => (
+                      <Chip
+                        key={s.id || idx}
+                        label={`${s.skill?.name || s.name || 'Skill'}${s.level ? ` (${s.level})` : ''}`}
+                        variant="primary"
+                      />
+                    ))}
+                  </View>
+                </Card>
+              )}
+
+              {/* GitHub Integration Stats Bento Card */}
+              <GitHubStatsCard
+                profileId={user.id || user.userId || 'me'}
+                githubUsername={user.githubUsername}
+              />
+
+              {/* Links Bento Card */}
+              {(user.githubUsername || user.portfolioUrl) ? (
+                <Card style={[styles.card, { marginTop: spacing.md }]}>
+                  <Text
+                    style={[
+                      styles.sectionTitle,
+                      { color: colors.onSurface, fontSize: typography.titleMedium.fontSize },
+                    ]}
+                  >
+                    Connected Profiles
+                  </Text>
+                  {user.githubUsername ? (
+                    <TouchableOpacity
+                      style={styles.linkRow}
+                      onPress={() =>
+                        Linking.openURL(`https://github.com/${user.githubUsername}`)
+                      }
+                    >
+                      <Text
+                        style={[
+                          styles.linkText,
+                          { color: colors.primary },
+                        ]}
+                      >
+                        github.com/{user.githubUsername}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  {user.portfolioUrl ? (
+                    <TouchableOpacity
+                      style={styles.linkRow}
+                      onPress={() => Linking.openURL(user.portfolioUrl!)}
+                    >
+                      <Text
+                        style={[
+                          styles.linkText,
+                          { color: colors.primary },
+                        ]}
+                      >
+                        {user.portfolioUrl}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </Card>
+              ) : null}
+
+              {/* Settings & Theme */}
+              <View style={{ marginTop: spacing.lg, alignItems: 'center' }}>
                 <Button
-                  title="Edit Profile"
-                  onPress={() => setIsEditing(true)}
-                  variant="primary"
-                  style={{ width: '100%', marginTop: spacing.md }}
+                  title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
+                  onPress={toggleTheme}
+                  variant="secondary"
+                  style={{ minWidth: 220, maxWidth: 280, width: '100%' }}
+                />
+
+                <Button
+                  title="Sign Out"
+                  onPress={logout}
+                  variant="outline"
+                  style={{ minWidth: 220, maxWidth: 280, width: '100%', marginTop: spacing.sm, borderColor: colors.outlineVariant }}
                 />
               </View>
-
-              {user.bio ? (
-                <Text
-                  style={[
-                    styles.bio,
-                    {
-                      color: colors.onSurface,
-                      fontSize: typography.bodyMedium.fontSize,
-                      marginTop: spacing.md,
-                    },
-                  ]}
-                >
-                  {user.bio}
-                </Text>
-              ) : null}
-
-              {(user.department || user.semester) ? (
-                <View style={[styles.infoRow, { marginTop: spacing.sm }]}>
-                  {user.department ? (
-                    <Chip label={user.department} variant="secondary" style={{ marginRight: 6 }} />
-                  ) : null}
-                  {user.semester ? (
-                    <Chip label={user.semester} variant="secondary" />
-                  ) : null}
-                </View>
-              ) : null}
-            </Card>
-
-            {/* Skills Bento Card */}
-            <Card style={[styles.card, { marginTop: spacing.md }]}>
-              <Text
-                style={[
-                  styles.sectionTitle,
-                  { color: colors.onSurface, fontSize: typography.titleMedium.fontSize },
-                ]}
-              >
-                Skills
-              </Text>
-              {user.skills && user.skills.length > 0 ? (
-                <View style={[styles.chipRow, { marginTop: spacing.sm }]}>
-                  {user.skills.map((sk) => (
-                    <Chip
-                      key={sk.id}
-                      label={sk.skillName}
-                      selected
-                      variant="primary"
-                      style={{ marginRight: 6, marginBottom: 6 }}
-                    />
-                  ))}
-                </View>
-              ) : (
-                <Text
-                  style={{
-                    color: colors.onSurfaceVariant,
-                    marginTop: spacing.xs,
-                    fontStyle: 'italic',
-                  }}
-                >
-                  No skills added yet. Tap "Edit Profile" to add your skills.
-                </Text>
-              )}
-            </Card>
-
-            {/* GitHub Integration Stats Bento Card */}
-            <GitHubStatsCard
-              profileId={user.id || user.userId || 'me'}
-              githubUsername={user.githubUsername}
-            />
-
-            {/* Links Bento Card */}
-            {(user.githubUsername || user.portfolioUrl) ? (
-              <Card style={[styles.card, { marginTop: spacing.md }]}>
-                <Text
-                  style={[
-                    styles.sectionTitle,
-                    { color: colors.onSurface, fontSize: typography.titleMedium.fontSize },
-                  ]}
-                >
-                  Links & Profiles
-                </Text>
-                {user.githubUsername ? (
-                  <TouchableOpacity
-                    style={styles.linkRow}
-                    onPress={() =>
-                      Linking.openURL(`https://github.com/${user.githubUsername}`)
-                    }
-                  >
-                    <Text
-                      style={[
-                        styles.linkText,
-                        { color: colors.primary, marginLeft: 8 },
-                      ]}
-                    >
-                      github.com/{user.githubUsername}
-                    </Text>
-                  </TouchableOpacity>
-                ) : null}
-
-                {user.portfolioUrl ? (
-                  <TouchableOpacity
-                    style={styles.linkRow}
-                    onPress={() => Linking.openURL(user.portfolioUrl!)}
-                  >
-                    <Text
-                      style={[
-                        styles.linkText,
-                        { color: colors.primary, marginLeft: 8 },
-                      ]}
-                    >
-                      {user.portfolioUrl}
-                    </Text>
-                  </TouchableOpacity>
-                ) : null}
-              </Card>
-            ) : null}
-
-            {/* Settings & Theme */}
-            <View style={{ marginTop: spacing.md }}>
-              <Button
-                title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
-                onPress={toggleTheme}
-                variant="secondary"
-              />
-
-              <Button
-                title="Sign Out"
-                onPress={logout}
-                variant="outline"
-                style={{ marginTop: spacing.sm }}
-              />
             </View>
-          </View>
-        )}
-      </StateWrapper>
-    </ScrollView>
+          )}
+        </StateWrapper>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  scroll: {
     flex: 1,
   },
   card: {

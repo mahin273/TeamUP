@@ -44,7 +44,13 @@ export const SettingsScreen: React.FC = () => {
         title="Settings"
         subtitle="Preferences & Account"
         showBack={true}
-        onBack={() => navigation.goBack()}
+        onBack={() => {
+          if (navigation?.canGoBack?.()) {
+            navigation.goBack();
+          } else if (navigation?.navigate) {
+            navigation.navigate('MainApp', { screen: 'More' });
+          }
+        }}
       />
 
       <ScrollView
@@ -130,7 +136,13 @@ export const SettingsScreen: React.FC = () => {
           title="Sign Out"
           variant="outline"
           onPress={handleLogout}
-          style={{ marginTop: spacing.xl, borderColor: colors.accent }}
+          style={{
+            marginTop: spacing.xl,
+            borderColor: colors.accent,
+            minWidth: 200,
+            maxWidth: 280,
+            alignSelf: 'center',
+          }}
           textStyle={{ color: colors.accent }}
         />
       </ScrollView>

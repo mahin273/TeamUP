@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   Pressable,
   Text,
+  View,
   StyleSheet,
   Animated,
   ActivityIndicator,
@@ -24,6 +25,7 @@ export interface ButtonProps {
   enableHaptics?: boolean;
   testID?: string;
   size?: 'sm' | 'md' | 'lg';
+  icon?: React.ReactNode;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -37,6 +39,7 @@ export const Button: React.FC<ButtonProps> = ({
   enableHaptics = true,
   testID,
   size = 'md',
+  icon,
 }) => {
   const { colors, typography, borderRadius, spacing } = useTheme();
   const [scaleAnim] = useState(() => new Animated.Value(1));
@@ -145,19 +148,22 @@ export const Button: React.FC<ButtonProps> = ({
         {loading ? (
           <ActivityIndicator color={getTextColor()} size="small" />
         ) : (
-          <Text
-            style={[
-              styles.text,
-              {
-                color: getTextColor(),
-                fontSize: typography.body.fontSize,
-                fontWeight: typography.h3.fontWeight,
-              },
-              textStyle,
-            ]}
-          >
-            {title}
-          </Text>
+          <View style={styles.contentRow}>
+            {icon && <View style={styles.iconWrapper}>{icon}</View>}
+            <Text
+              style={[
+                styles.text,
+                {
+                  color: getTextColor(),
+                  fontSize: typography.body.fontSize,
+                  fontWeight: typography.h3.fontWeight,
+                },
+                textStyle,
+              ]}
+            >
+              {title}
+            </Text>
+          </View>
         )}
       </Pressable>
     </Animated.View>
@@ -169,6 +175,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
+  },
+  contentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconWrapper: {
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   text: {
     textAlign: 'center',

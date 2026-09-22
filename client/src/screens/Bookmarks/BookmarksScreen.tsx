@@ -6,7 +6,9 @@ import {
   ScrollView,
   RefreshControl,
 } from 'react-native';
+import { NavigationContext } from '@react-navigation/native';
 import { useTheme } from '../../theme/ThemeContext';
+import { AppHeader } from '../../components/AppHeader';
 import { Card } from '../../components/Card';
 import { Badge } from '../../components/Badge';
 import { StateWrapper, ScreenState } from '../../components/StateWrapper';
@@ -45,11 +47,15 @@ const SAMPLE_PROJECTS: ProjectListing[] = [
 
 export interface BookmarksScreenProps {
   onNavigateToSearch?: () => void;
+  navigation?: any;
 }
 
 export const BookmarksScreen: React.FC<BookmarksScreenProps> = ({
   onNavigateToSearch,
+  navigation: propNavigation,
 }) => {
+  const contextNavigation = React.useContext(NavigationContext);
+  const navigation = propNavigation || contextNavigation;
   const { colors, typography, spacing } = useTheme();
 
   const [bookmarkedProjects, setBookmarkedProjects] = useState<ProjectListing[]>([]);
@@ -157,12 +163,25 @@ export const BookmarksScreen: React.FC<BookmarksScreenProps> = ({
   };
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <AppHeader
+        title="Bookmarks"
+        subtitle="Your bookmarked project listings"
+        showBack={Boolean(navigation)}
+        onBack={() => {
+          if (navigation?.canGoBack?.()) {
+            navigation.goBack();
+          } else if (navigation?.navigate) {
+            navigation.navigate('MainApp', { screen: 'More' });
+          }
+        }}
+      />
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
       <View style={{ padding: spacing.md }}>
         {/* Header Card */}
         <Card style={styles.headerCard}>
@@ -218,7 +237,8 @@ export const BookmarksScreen: React.FC<BookmarksScreenProps> = ({
           </View>
         </StateWrapper>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
