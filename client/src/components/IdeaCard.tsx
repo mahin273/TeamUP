@@ -214,7 +214,8 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({
             title="Turn into Project"
             onPress={handleTurnIntoProject}
             variant="primary"
-            style={{ flex: 1, marginLeft: 8 }}
+            size="sm"
+            style={{ minWidth: 130, maxWidth: 170 }}
           />
         )}
       </View>
@@ -265,14 +266,18 @@ const styles = StyleSheet.create({
   footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
+    flexWrap: 'wrap',
   },
   actionButton: {
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 7,
     borderRadius: 8,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 34,
   },
   metricsRow: {
     flexDirection: 'row',

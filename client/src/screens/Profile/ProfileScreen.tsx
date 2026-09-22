@@ -271,7 +271,7 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation: prop
                     {user.skills.map((s, idx) => (
                       <Chip
                         key={s.id || idx}
-                        label={`${s.skill?.name || s.name || 'Skill'}${s.level ? ` (${s.level})` : ''}`}
+                        label={`${(s as any).skill?.name || s.skillName || (s as any).name || 'Skill'}${(s as any).level ? ` (${(s as any).level})` : ''}`}
                         variant="primary"
                       />
                     ))}

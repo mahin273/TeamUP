@@ -1,6 +1,6 @@
 import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, View, StyleSheet, Platform } from 'react-native';
+import { createBottomTabNavigator, BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
+import { Text, View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 
@@ -20,8 +20,56 @@ export type MainTabParamList = {
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
+interface CategoryTabButtonProps extends BottomTabBarButtonProps {
+  isDark: boolean;
+}
+
+const CategoryTabButton: React.FC<CategoryTabButtonProps> = ({
+  children,
+  style,
+  onPress,
+  onLongPress,
+  accessibilityState,
+  isDark,
+  testID,
+  accessibilityLabel,
+}) => {
+  const isSelected = Boolean(accessibilityState?.selected);
+
+  return (
+    <TouchableOpacity
+      testID={testID}
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress || undefined}
+      onLongPress={onLongPress || undefined}
+      accessibilityState={accessibilityState}
+      accessibilityRole="tab"
+      activeOpacity={0.75}
+      style={[
+        style,
+        styles.tabItem,
+        isSelected
+          ? [
+              styles.tabItemActive,
+              {
+                backgroundColor: isDark
+                  ? 'rgba(99, 102, 241, 0.22)'
+                  : 'rgba(99, 102, 241, 0.12)',
+                borderColor: isDark
+                  ? 'rgba(99, 102, 241, 0.40)'
+                  : 'rgba(99, 102, 241, 0.25)',
+              },
+            ]
+          : styles.tabItemInactive,
+      ]}
+    >
+      {children}
+    </TouchableOpacity>
+  );
+};
+
 export const TabNavigator = () => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
@@ -29,18 +77,38 @@ export const TabNavigator = () => {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
+          backgroundColor: isDark
+            ? 'rgba(15, 23, 42, 0.88)'
+            : 'rgba(255, 255, 255, 0.90)',
+          borderTopColor: isDark
+            ? 'rgba(255, 255, 255, 0.08)'
+            : 'rgba(0, 0, 0, 0.06)',
           borderTopWidth: 1,
-          height: 58 + Math.max(insets.bottom, 10),
-          paddingBottom: Math.max(insets.bottom, 8),
-          paddingTop: 6,
+          height: 62 + Math.max(insets.bottom, 6),
+          paddingBottom: Math.max(insets.bottom, 6),
+          paddingTop: 4,
+          paddingHorizontal: 4,
+          ...Platform.select({
+            web: {
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+            },
+            default: {
+              elevation: 8,
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: -2 },
+              shadowOpacity: isDark ? 0.35 : 0.08,
+              shadowRadius: 8,
+            },
+          }),
         },
+        tabBarButton: (props) => <CategoryTabButton {...props} isDark={isDark} />,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
+          fontSize: 11,
+          fontWeight: '700',
+          marginTop: 1,
         },
       }}
     >
@@ -66,6 +134,24 @@ export const TabNavigator = () => {
         options={{
           title: 'Create',
           tabBarLabel: () => null,
+          tabBarButton: (props) => (
+            <TouchableOpacity
+              testID={props.testID}
+              accessibilityLabel={props.accessibilityLabel}
+              onPress={props.onPress || undefined}
+              onLongPress={props.onLongPress || undefined}
+              activeOpacity={0.85}
+              style={[
+                props.style,
+                {
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                },
+              ]}
+            >
+              {props.children}
+            </TouchableOpacity>
+          ),
           tabBarIcon: () => (
             <View
               style={[
@@ -120,5 +206,24 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     lineHeight: 28,
     textAlign: 'center',
+  },
+  tabItem: {
+    flex: 1,
+    marginHorizontal: 3,
+    marginVertical: 2,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tabItemActive: {
+    borderWidth: 1,
+    opacity: 1,
+  },
+  tabItemInactive: {
+    borderWidth: 1,
+    borderColor: 'transparent',
+    opacity: 0.68,
   },
 });

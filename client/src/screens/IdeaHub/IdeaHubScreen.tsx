@@ -453,7 +453,12 @@ export const IdeaHubScreen: React.FC<IdeaHubScreenProps> = ({ navigation }) => {
                 variant="primary"
                 loading={isGenerating}
                 disabled={isGenerating}
-                style={{ marginTop: spacing.lg }}
+                style={{
+                  marginTop: spacing.lg,
+                  minWidth: 240,
+                  maxWidth: 320,
+                  alignSelf: 'center',
+                }}
               />
             </Card>
 
