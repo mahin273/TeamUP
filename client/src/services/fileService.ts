@@ -1,4 +1,4 @@
-import { api } from '../api/client';
+import { api, apiClient } from '../api/client';
 
 export type FileCategory = 'IMAGE' | 'DOCUMENT' | 'OTHER';
 
@@ -127,12 +127,12 @@ export const fileService = {
       type: file.mimeType,
     } as any);
 
-    const response = await api.post<UploadFileResponse>(
+    const response = await apiClient.post<any>(
       `/projects/${projectId}/files`,
       formData,
       {
         headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (progressEvent) => {
+        onUploadProgress: (progressEvent: any) => {
           if (onProgress && progressEvent.total) {
             const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
             onProgress(percent);
@@ -141,8 +141,14 @@ export const fileService = {
       }
     );
 
-    // Handle both { file: ProjectFile } and ProjectFile directly
-    return (response as any)?.file ?? (response as any);
+    // Unwrap envelope if present (apiClient bypasses the interceptor unwrap for raw calls)
+    const body = response?.data ?? response;
+
+    // Handle both { success, data: { file } }, { file: ProjectFile } and ProjectFile directly
+    if (body?.success && body?.data) {
+      return (body.data as any)?.file ?? body.data;
+    }
+    return (body as any)?.file ?? body;
   },
 
   /**
