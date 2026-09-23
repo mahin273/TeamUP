@@ -26,7 +26,7 @@ export interface WorkspaceHomeScreenProps {
 }
 
 export const WorkspaceHomeScreen: React.FC<WorkspaceHomeScreenProps> = ({ route, navigation }) => {
-  const { colors, typography, spacing, borderRadius, elevation } = useTheme();
+  const { colors, typography, spacing, borderRadius } = useTheme();
   const projectId = route?.params?.projectId || '';
   const initialTitle = route?.params?.projectTitle || 'Project Workspace';
 
