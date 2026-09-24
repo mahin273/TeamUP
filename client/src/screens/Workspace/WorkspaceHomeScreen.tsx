@@ -26,7 +26,7 @@ export interface WorkspaceHomeScreenProps {
 }
 
 export const WorkspaceHomeScreen: React.FC<WorkspaceHomeScreenProps> = ({ route, navigation }) => {
-  const { colors, typography, spacing, borderRadius, elevation } = useTheme();
+  const { colors, typography, spacing, borderRadius } = useTheme();
   const projectId = route?.params?.projectId || '';
   const initialTitle = route?.params?.projectTitle || 'Project Workspace';
 
@@ -83,6 +83,7 @@ export const WorkspaceHomeScreen: React.FC<WorkspaceHomeScreenProps> = ({ route,
     assignedToMe: 0,
   };
   const chatMetrics = overview?.metrics?.chat || { totalMessages: 0 };
+  const fileMetrics = overview?.metrics?.files || { totalCount: 0, totalSize: 0, recent: [] };
   const memberCount = overview?.members?.length || 0;
 
   // Calculate completion percentage
@@ -108,7 +109,12 @@ export const WorkspaceHomeScreen: React.FC<WorkspaceHomeScreenProps> = ({ route,
       />
 
       {/* Contextual Sticky Sub-Navigation */}
-      <View style={[styles.tabBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={[styles.tabBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}
+        contentContainerStyle={styles.tabBarContent}
+      >
         <TouchableOpacity style={[styles.tabItem, { borderBottomColor: colors.primary, borderBottomWidth: 2.5 }]}>
           <Text style={[styles.tabTextActive, { color: colors.primary }]}>Overview</Text>
         </TouchableOpacity>
@@ -130,7 +136,19 @@ export const WorkspaceHomeScreen: React.FC<WorkspaceHomeScreenProps> = ({ route,
         >
           <Text style={[styles.tabText, { color: colors.textMuted }]}>Team</Text>
         </TouchableOpacity>
-      </View>
+        <TouchableOpacity
+          style={styles.tabItem}
+          onPress={() => navigation?.navigate('Files', { projectId, projectTitle })}
+        >
+          <Text style={[styles.tabText, { color: colors.textMuted }]}>Files</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.tabItem}
+          onPress={() => navigation?.navigate('Analytics', { projectId, projectTitle })}
+        >
+          <Text style={[styles.tabText, { color: colors.textMuted }]}>Analytics</Text>
+        </TouchableOpacity>
+      </ScrollView>
 
       <StateWrapper
         state={screenState}
@@ -333,6 +351,111 @@ export const WorkspaceHomeScreen: React.FC<WorkspaceHomeScreenProps> = ({ route,
               }
             />
           </Card>
+
+          {/* Section: File Sharing */}
+          <Card style={{ marginBottom: spacing.md }}>
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={[typography.h3, { color: colors.text }]}>Shared Files</Text>
+                <Text style={[typography.bodySmall, { color: colors.textMuted }]}>
+                  Documents, images, and resources
+                </Text>
+              </View>
+              <Badge label={`${fileMetrics.totalCount} Files`} variant="primary" />
+            </View>
+
+            <Text style={[typography.body, { color: colors.textMuted, marginVertical: spacing.sm }]}>
+              {fileMetrics.totalCount === 0
+                ? 'No files shared yet. Upload documents or images with your team.'
+                : `${fileMetrics.totalCount} file${fileMetrics.totalCount !== 1 ? 's' : ''} shared in this project.`}
+            </Text>
+
+            <Button
+              title="Open Files"
+              variant="outline"
+              onPress={() =>
+                navigation?.navigate('Files', {
+                  projectId,
+                  projectTitle,
+                })
+              }
+            />
+          </Card>
+
+          {/* Section: Peer Evaluation */}
+          <Card style={{ marginBottom: spacing.md }}>
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={[typography.h3, { color: colors.text }]}>Peer Evaluation</Text>
+                <Text style={[typography.bodySmall, { color: colors.textMuted }]}>
+                  Rate your teammates' contributions
+                </Text>
+              </View>
+              <Badge label="Feature 10" variant="secondary" />
+            </View>
+
+            <Text style={[typography.body, { color: colors.textMuted, marginVertical: spacing.sm }]}>
+              Submit honest, criteria-based evaluations for each of your teammates after working together.
+            </Text>
+
+            <Button
+              title="Open Evaluations"
+              variant="secondary"
+              onPress={() =>
+                navigation?.navigate('Evaluation', {
+                  projectId,
+                  projectTitle,
+                })
+              }
+            />
+          </Card>
+
+          {/* Section: Analytics Dashboard */}
+          <Card style={{ marginBottom: spacing.md }}>
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={[typography.h3, { color: colors.text }]}>Analytics</Text>
+                <Text style={[typography.bodySmall, { color: colors.textMuted }]}>
+                  Project progress & team activity
+                </Text>
+              </View>
+              <Badge label={`${taskMetrics.done}/${taskMetrics.total} Done`} variant="primary" />
+            </View>
+
+            <View style={[styles.taskBreakdownRow, { marginVertical: spacing.md }]}>
+              <View style={[styles.metricPill, { backgroundColor: colors.primarySoft, borderColor: colors.border }]}>
+                <Text style={[typography.label, { color: colors.primary }]}>RATE</Text>
+                <Text style={[typography.h3, { color: colors.primary, fontWeight: '700', marginTop: 2 }]}>
+                  {taskMetrics.total > 0
+                    ? `${Math.round((taskMetrics.done / taskMetrics.total) * 100)}%`
+                    : '—'}
+                </Text>
+              </View>
+              <View style={[styles.metricPill, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
+                <Text style={[typography.label, { color: colors.textMuted }]}>HIGH PRI</Text>
+                <Text style={[typography.h3, { color: colors.accent, fontWeight: '700', marginTop: 2 }]}>
+                  {taskMetrics.highPriority}
+                </Text>
+              </View>
+              <View style={[styles.metricPill, { backgroundColor: colors.secondarySoft, borderColor: colors.border }]}>
+                <Text style={[typography.label, { color: colors.secondary }]}>MINE</Text>
+                <Text style={[typography.h3, { color: colors.secondary, fontWeight: '700', marginTop: 2 }]}>
+                  {taskMetrics.assignedToMe}
+                </Text>
+              </View>
+            </View>
+
+            <Button
+              title="View Full Analytics"
+              variant="primary"
+              onPress={() =>
+                navigation?.navigate('Analytics', {
+                  projectId,
+                  projectTitle,
+                })
+              }
+            />
+          </Card>
         </ScrollView>
       </StateWrapper>
     </View>
@@ -344,12 +467,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tabBar: {
-    flexDirection: 'row',
     borderBottomWidth: 1,
+    flexGrow: 0,
+  },
+  tabBarContent: {
+    flexDirection: 'row',
+    paddingHorizontal: 4,
   },
   tabItem: {
-    flex: 1,
     paddingVertical: 12,
+    paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
