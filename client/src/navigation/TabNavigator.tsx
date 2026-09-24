@@ -21,7 +21,7 @@ export type MainTabParamList = {
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export const TabNavigator = () => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
@@ -29,18 +29,46 @@ export const TabNavigator = () => {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
+          backgroundColor: isDark
+            ? 'rgba(15, 23, 42, 0.85)'
+            : 'rgba(255, 255, 255, 0.88)',
+          borderTopColor: isDark
+            ? 'rgba(255, 255, 255, 0.08)'
+            : 'rgba(0, 0, 0, 0.06)',
           borderTopWidth: 1,
-          height: 58 + Math.max(insets.bottom, 10),
-          paddingBottom: Math.max(insets.bottom, 8),
-          paddingTop: 6,
+          height: 60 + Math.max(insets.bottom, 6),
+          paddingBottom: Math.max(insets.bottom, 6),
+          paddingTop: 4,
+          paddingHorizontal: 4,
+          ...Platform.select({
+            web: {
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+            },
+            default: {
+              elevation: 8,
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: -2 },
+              shadowOpacity: isDark ? 0.35 : 0.08,
+              shadowRadius: 8,
+            },
+          }),
+        },
+        tabBarActiveBackgroundColor: isDark
+          ? 'rgba(99, 102, 241, 0.22)'
+          : 'rgba(99, 102, 241, 0.12)',
+        tabBarItemStyle: {
+          borderRadius: 14,
+          marginHorizontal: 3,
+          marginVertical: 3,
+          paddingVertical: 2,
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
+          fontSize: 11,
+          fontWeight: '700',
+          marginTop: 1,
         },
       }}
     >
@@ -66,6 +94,12 @@ export const TabNavigator = () => {
         options={{
           title: 'Create',
           tabBarLabel: () => null,
+          tabBarActiveBackgroundColor: 'transparent',
+          tabBarItemStyle: {
+            borderRadius: 0,
+            marginHorizontal: 0,
+            marginVertical: 0,
+          },
           tabBarIcon: () => (
             <View
               style={[
@@ -100,6 +134,7 @@ export const TabNavigator = () => {
     </Tab.Navigator>
   );
 };
+
 
 const styles = StyleSheet.create({
   createButton: {

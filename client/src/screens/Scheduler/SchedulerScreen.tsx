@@ -10,8 +10,10 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
+import { NavigationContext } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../theme/ThemeContext';
+import { AppHeader } from '../../components/AppHeader';
 import { Card } from '../../components/Card';
 import { Badge } from '../../components/Badge';
 import { Chip } from '../../components/Chip';
@@ -27,12 +29,16 @@ import {
 export interface SchedulerScreenProps {
   projectId?: string;
   onMeetingConfirmed?: (meeting: Meeting) => void;
+  navigation?: any;
 }
 
 export const SchedulerScreen: React.FC<SchedulerScreenProps> = ({
   projectId = 'project-1',
   onMeetingConfirmed,
+  navigation: propNavigation,
 }) => {
+  const contextNavigation = React.useContext(NavigationContext);
+  const navigation = propNavigation || contextNavigation;
   const { colors, typography, spacing } = useTheme();
 
   const [viewMode, setViewMode] = useState<'CALENDAR' | 'MEETINGS'>('MEETINGS');
@@ -232,48 +238,62 @@ export const SchedulerScreen: React.FC<SchedulerScreenProps> = ({
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Top Mode Switcher */}
-      <View style={[styles.modeSwitcherRow, { marginBottom: spacing.sm }]}>
-        <Chip
-          label="📅 Calendar & Deadlines"
-          selected={viewMode === 'CALENDAR'}
-          onPress={() => setViewMode('CALENDAR')}
-        />
-        <View style={{ width: spacing.xs }} />
-        <Chip
-          label="🤝 Meeting Proposals"
-          selected={viewMode === 'MEETINGS'}
-          onPress={() => setViewMode('MEETINGS')}
-        />
-      </View>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <AppHeader
+        title="Calendar & Meetings"
+        subtitle="Standups, deadlines & team schedule"
+        showBack={Boolean(navigation)}
+        onBack={() => {
+          if (navigation?.canGoBack?.()) {
+            navigation.goBack();
+          } else {
+            navigation.navigate('MainApp', { screen: 'More' });
+          }
+        }}
+      />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {/* Top Mode Switcher */}
+        <View style={[styles.modeSwitcherRow, { marginBottom: spacing.sm }]}>
+          <Chip
+            label="📅 Calendar & Deadlines"
+            selected={viewMode === 'CALENDAR'}
+            onPress={() => setViewMode('CALENDAR')}
+          />
+          <View style={{ width: spacing.xs }} />
+          <Chip
+            label="🤝 Meeting Proposals"
+            selected={viewMode === 'MEETINGS'}
+            onPress={() => setViewMode('MEETINGS')}
+          />
+        </View>
 
-      {viewMode === 'CALENDAR' ? (
-        <CalendarView projectId={projectId} />
-      ) : (
-        <>
-          {/* Header */}
-          <View style={styles.header}>
-            <View>
-              <Text
-                style={[
-                  styles.headerTitle,
-                  { color: colors.onSurface, fontSize: typography.headlineMedium.fontSize },
-                ]}
-              >
-                Meeting Scheduler
-              </Text>
-              <Text style={{ color: colors.onSurfaceVariant, fontSize: 13, marginTop: 2 }}>
-                Propose slots, collect votes, and confirm team meetings.
-              </Text>
+        {viewMode === 'CALENDAR' ? (
+          <CalendarView projectId={projectId} />
+        ) : (
+          <>
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={{ flex: 1, marginRight: spacing.sm }}>
+                <Text
+                  style={[
+                    styles.headerTitle,
+                    { color: colors.onSurface, fontSize: typography.headlineMedium.fontSize },
+                  ]}
+                >
+                  Meeting Scheduler
+                </Text>
+                <Text style={{ color: colors.onSurfaceVariant, fontSize: 13, marginTop: 2 }}>
+                  Propose slots, collect votes, and confirm team meetings.
+                </Text>
+              </View>
+
+              <Button
+                title="+ Propose"
+                onPress={() => setIsModalVisible(true)}
+                size="sm"
+                style={{ minWidth: 96, alignSelf: 'center' }}
+              />
             </View>
-
-            <Button
-              title="+ Propose"
-              onPress={() => setIsModalVisible(true)}
-              style={{ paddingHorizontal: spacing.sm }}
-            />
-          </View>
 
           {/* Filter Chips */}
           <View style={[styles.filterRow, { marginVertical: spacing.md }]}>
@@ -569,6 +589,7 @@ export const SchedulerScreen: React.FC<SchedulerScreenProps> = ({
       </Modal>
         </>
       )}
+      </View>
     </View>
   );
 };

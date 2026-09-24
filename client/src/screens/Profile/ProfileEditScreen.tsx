@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
+import { AppHeader } from '../../components/AppHeader';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Chip } from '../../components/Chip';
@@ -121,27 +122,34 @@ export const ProfileEditScreen: React.FC<ProfileEditScreenProps> = ({
   };
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ padding: spacing.md }}
-      keyboardShouldPersistTaps="handled"
-    >
-      <Card style={styles.card}>
-        <View style={styles.headerRow}>
-          <Text
-            style={[
-              styles.title,
-              { color: colors.onSurface, fontSize: typography.headlineMedium.fontSize },
-            ]}
-          >
-            Edit Profile
-          </Text>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 16 }}>
-              Cancel
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <AppHeader
+        title="Edit Profile"
+        subtitle="Personal & Academic Info"
+        showBack={true}
+        onBack={onClose}
+      />
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: spacing.md, paddingBottom: 40 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Card style={styles.card}>
+          <View style={styles.headerRow}>
+            <Text
+              style={[
+                styles.title,
+                { color: colors.onSurface, fontSize: typography.headlineMedium.fontSize },
+              ]}
+            >
+              Profile Details
             </Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 16 }}>
+                Cancel
+              </Text>
+            </TouchableOpacity>
+          </View>
 
         {errorMsg ? (
           <View
@@ -340,13 +348,26 @@ export const ProfileEditScreen: React.FC<ProfileEditScreenProps> = ({
               value={newSkillName}
               onChangeText={setNewSkillName}
             />
-            <Button title="Add" onPress={handleAddSkill} variant="secondary" style={{ flex: 1 }} />
+              <Button
+                title="Add"
+                onPress={handleAddSkill}
+                variant="secondary"
+                style={{ minWidth: 72, paddingHorizontal: 16 }}
+              />
+            </View>
           </View>
-        </View>
 
-        <Button title="Save Profile" onPress={handleSave} loading={saving} style={{ marginTop: spacing.md }} />
-      </Card>
-    </ScrollView>
+          <View style={{ alignItems: 'center', marginTop: spacing.lg }}>
+            <Button
+              title="Save Profile"
+              onPress={handleSave}
+              loading={saving}
+              style={{ minWidth: 200, maxWidth: 280, width: '100%' }}
+            />
+          </View>
+        </Card>
+      </ScrollView>
+    </View>
   );
 };
 
