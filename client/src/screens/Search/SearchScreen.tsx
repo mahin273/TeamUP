@@ -182,8 +182,14 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({ navigation }) => {
       <AppHeader
         title="Project Search"
         subtitle="Find projects, classmates & skills"
-        showBack={navigation?.canGoBack ? navigation.canGoBack() : false}
-        onBack={() => navigation?.goBack?.()}
+        showBack={Boolean(navigation)}
+        onBack={() => {
+          if (navigation?.canGoBack?.()) {
+            navigation.goBack();
+          } else if (navigation?.navigate) {
+            navigation.navigate('MainApp', { screen: 'More' });
+          }
+        }}
       />
 
       <ScrollView

@@ -315,7 +315,7 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({ navigation
             data={projects}
             keyExtractor={(item) => item.id}
             renderItem={renderProjectItem}
-            contentContainerStyle={{ padding: spacing.screenPadding, paddingBottom: 60 }}
+            contentContainerStyle={{ padding: spacing.screenPadding, paddingBottom: 90 }}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}

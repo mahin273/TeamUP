@@ -155,7 +155,12 @@ export const StateWrapper: React.FC<StateWrapperProps> = ({
           <Button
             title={emptyActionLabel}
             onPress={onEmptyAction}
-            style={{ marginTop: spacing.md }}
+            style={{
+              marginTop: spacing.md,
+              alignSelf: 'center',
+              minWidth: 160,
+              maxWidth: 240,
+            }}
           />
         ) : null}
       </View>
@@ -204,7 +209,12 @@ export const StateWrapper: React.FC<StateWrapperProps> = ({
             title={retryActionLabel}
             onPress={onRetry}
             variant="outline"
-            style={{ marginTop: spacing.md }}
+            style={{
+              marginTop: spacing.md,
+              alignSelf: 'center',
+              minWidth: 160,
+              maxWidth: 240,
+            }}
           />
         )}
       </View>

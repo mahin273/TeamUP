@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 40,
+    paddingBottom: 90,
   },
   profileCard: {
     padding: 16,

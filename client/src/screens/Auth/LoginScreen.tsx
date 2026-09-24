@@ -8,12 +8,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { GitHubIcon } from '../../components/GitHubIcon';
 import { useAuth } from '../../context/AuthContext';
-import { ApiError } from '../../api/client';
+import { api, ApiError } from '../../api/client';
 
 export const LoginScreen = ({ navigation }: any) => {
   const { colors, typography, spacing, borderRadius } = useTheme();
@@ -22,7 +24,44 @@ export const LoginScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [githubLoading, setGithubLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const handleGitHubLogin = async () => {
+    setGithubLoading(true);
+    setErrorMsg(null);
+    try {
+      const redirectUri =
+        Platform.OS === 'web' && typeof window !== 'undefined'
+          ? window.location.origin
+          : 'teamup://github-callback';
+
+      let targetUrl = `https://github.com/login/oauth/authorize?client_id=Ov23liDPxJFmHfgane2n&scope=read:user%20repo&redirect_uri=${encodeURIComponent(
+        redirectUri
+      )}`;
+
+      try {
+        const res = await api.get<{ url: string }>(
+          `/github/auth-url?redirectUri=${encodeURIComponent(redirectUri)}`
+        );
+        if (res && res.url) {
+          targetUrl = res.url;
+        }
+      } catch {
+        // Fallback targetUrl
+      }
+
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.location.href = targetUrl;
+      } else {
+        await Linking.openURL(targetUrl);
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Failed to initiate GitHub authorization.');
+    } finally {
+      setGithubLoading(false);
+    }
+  };
 
   const validate = (): boolean => {
     if (!email.trim()) {
@@ -163,6 +202,21 @@ export const LoginScreen = ({ navigation }: any) => {
               style={{ marginTop: spacing.md }}
             />
 
+            <View style={styles.dividerRow}>
+              <View style={[styles.dividerLine, { backgroundColor: colors.outlineVariant }]} />
+              <Text style={[styles.dividerText, { color: colors.onSurfaceVariant }]}>or</Text>
+              <View style={[styles.dividerLine, { backgroundColor: colors.outlineVariant }]} />
+            </View>
+
+            <Button
+              title="Continue with GitHub"
+              variant="outline"
+              icon={<GitHubIcon size={18} color={colors.onSurface} />}
+              onPress={handleGitHubLogin}
+              loading={githubLoading}
+              textStyle={{ color: colors.onSurface, fontWeight: '600' }}
+            />
+
             <View style={styles.footerRow}>
               <Text style={{ color: colors.onSurfaceVariant }}>
                 Don't have an account?{' '}
@@ -235,6 +289,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    fontSize: 13,
+    fontWeight: '500',
+    textTransform: 'uppercase',
   },
   footerRow: {
     flexDirection: 'row',

@@ -13,6 +13,7 @@ import { Card } from './Card';
 import { Chip } from './Chip';
 import { Badge } from './Badge';
 import { Button } from './Button';
+import { GitHubIcon } from './GitHubIcon';
 import { api } from '../api/client';
 
 export interface GitHubStats {
@@ -152,7 +153,8 @@ export const GitHubStatsCard: React.FC<GitHubStatsCardProps> = ({
           title="Connect GitHub Account"
           onPress={handleOAuthConnect}
           variant="primary"
-          style={{ marginTop: spacing.md }}
+          icon={<GitHubIcon size={18} color={colors.onPrimary} />}
+          style={{ marginTop: spacing.md, alignSelf: 'flex-start', minWidth: 200 }}
         />
       </Card>
     );

@@ -302,7 +302,7 @@ export const ProjectDetailScreen: React.FC<ProjectDetailScreenProps> = ({ route,
             </View>
 
             {/* Action CTAs */}
-            <View style={[styles.bottomBar, { marginTop: spacing.xl }]}>
+            <View style={[styles.bottomBar, { marginTop: spacing.xl, alignItems: 'center' }]}>
               {isMember ? (
                 <Button
                   title="Open Workspace"
@@ -313,6 +313,7 @@ export const ProjectDetailScreen: React.FC<ProjectDetailScreenProps> = ({ route,
                       projectTitle: project.title,
                     })
                   }
+                  style={{ minWidth: 220, maxWidth: 320 }}
                 />
               ) : isPending ? (
                 <Button
@@ -320,6 +321,7 @@ export const ProjectDetailScreen: React.FC<ProjectDetailScreenProps> = ({ route,
                   variant="outline"
                   disabled
                   onPress={() => {}}
+                  style={{ minWidth: 220, maxWidth: 320 }}
                 />
               ) : (
                 <Button
@@ -328,6 +330,7 @@ export const ProjectDetailScreen: React.FC<ProjectDetailScreenProps> = ({ route,
                   loading={isJoining}
                   disabled={isJoining}
                   onPress={handleJoinProject}
+                  style={{ minWidth: 220, maxWidth: 320 }}
                 />
               )}
             </View>

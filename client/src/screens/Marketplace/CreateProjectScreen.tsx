@@ -340,7 +340,12 @@ export const CreateProjectScreen: React.FC<CreateProjectScreenProps> = ({ naviga
                   setCurrentStep(2);
                 }
               }}
-              style={{ marginTop: spacing.sm }}
+              style={{
+                marginTop: spacing.sm,
+                minWidth: 200,
+                maxWidth: 280,
+                alignSelf: 'center',
+              }}
             />
           </View>
         )}

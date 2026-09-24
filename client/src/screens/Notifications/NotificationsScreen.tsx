@@ -11,6 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../theme/ThemeContext';
+import { AppHeader } from '../../components/AppHeader';
 import { Card } from '../../components/Card';
 import { Badge } from '../../components/Badge';
 import { Chip } from '../../components/Chip';
@@ -294,33 +295,38 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTitleRow}>
-          <Text
-            style={[
-              styles.headerTitle,
-              { color: colors.onSurface, fontSize: typography.headlineMedium.fontSize },
-            ]}
-          >
-            Notifications
-          </Text>
-          {unreadCount > 0 ? (
-            <Badge label={`${unreadCount} unread`} variant="primary" />
-          ) : (
-            <Badge label="All read" variant="secondary" />
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <AppHeader
+        title="Notifications"
+        subtitle="Invitations, applications & updates"
+        showBack={Boolean(navigation)}
+        onBack={() => {
+          if (navigation?.canGoBack?.()) {
+            navigation.goBack();
+          } else {
+            navigation?.navigate?.('MainApp', { screen: 'More' });
+          }
+        }}
+      />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {/* Header Badges and Actions */}
+        <View style={styles.header}>
+          <View style={styles.headerTitleRow}>
+            {unreadCount > 0 ? (
+              <Badge label={`${unreadCount} unread`} variant="primary" />
+            ) : (
+              <Badge label="All read" variant="secondary" />
+            )}
+          </View>
+
+          {unreadCount > 0 && (
+            <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.markAllBtn}>
+              <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 13 }}>
+                Mark all read
+              </Text>
+            </TouchableOpacity>
           )}
         </View>
-
-        {unreadCount > 0 && (
-          <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.markAllBtn}>
-            <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 13 }}>
-              Mark all read
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
 
       {/* Filter Chips */}
       <View style={[styles.filterRow, { marginBottom: spacing.md }]}>
@@ -378,6 +384,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
           )}
         />
       )}
+      </View>
     </View>
   );
 };
