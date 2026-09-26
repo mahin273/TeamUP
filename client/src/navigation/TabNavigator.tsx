@@ -1,6 +1,6 @@
 import React from 'react';
-import { createBottomTabNavigator, BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
-import { Text, View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Text, View, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 
@@ -20,54 +20,6 @@ export type MainTabParamList = {
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-interface CategoryTabButtonProps extends BottomTabBarButtonProps {
-  isDark: boolean;
-}
-
-const CategoryTabButton: React.FC<CategoryTabButtonProps> = ({
-  children,
-  style,
-  onPress,
-  onLongPress,
-  accessibilityState,
-  isDark,
-  testID,
-  accessibilityLabel,
-}) => {
-  const isSelected = Boolean(accessibilityState?.selected);
-
-  return (
-    <TouchableOpacity
-      testID={testID}
-      accessibilityLabel={accessibilityLabel}
-      onPress={onPress || undefined}
-      onLongPress={onLongPress || undefined}
-      accessibilityState={accessibilityState}
-      accessibilityRole="tab"
-      activeOpacity={0.75}
-      style={[
-        style,
-        styles.tabItem,
-        isSelected
-          ? [
-              styles.tabItemActive,
-              {
-                backgroundColor: isDark
-                  ? 'rgba(99, 102, 241, 0.22)'
-                  : 'rgba(99, 102, 241, 0.12)',
-                borderColor: isDark
-                  ? 'rgba(99, 102, 241, 0.40)'
-                  : 'rgba(99, 102, 241, 0.25)',
-              },
-            ]
-          : styles.tabItemInactive,
-      ]}
-    >
-      {children}
-    </TouchableOpacity>
-  );
-};
-
 export const TabNavigator = () => {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
@@ -78,20 +30,20 @@ export const TabNavigator = () => {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: isDark
-            ? 'rgba(15, 23, 42, 0.88)'
-            : 'rgba(255, 255, 255, 0.90)',
+            ? 'rgba(15, 23, 42, 0.85)'
+            : 'rgba(255, 255, 255, 0.88)',
           borderTopColor: isDark
             ? 'rgba(255, 255, 255, 0.08)'
             : 'rgba(0, 0, 0, 0.06)',
           borderTopWidth: 1,
-          height: 62 + Math.max(insets.bottom, 6),
+          height: 60 + Math.max(insets.bottom, 6),
           paddingBottom: Math.max(insets.bottom, 6),
           paddingTop: 4,
           paddingHorizontal: 4,
           ...Platform.select({
             web: {
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
             },
             default: {
               elevation: 8,
@@ -102,7 +54,15 @@ export const TabNavigator = () => {
             },
           }),
         },
-        tabBarButton: (props) => <CategoryTabButton {...props} isDark={isDark} />,
+        tabBarActiveBackgroundColor: isDark
+          ? 'rgba(99, 102, 241, 0.22)'
+          : 'rgba(99, 102, 241, 0.12)',
+        tabBarItemStyle: {
+          borderRadius: 14,
+          marginHorizontal: 3,
+          marginVertical: 3,
+          paddingVertical: 2,
+        },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
@@ -134,24 +94,12 @@ export const TabNavigator = () => {
         options={{
           title: 'Create',
           tabBarLabel: () => null,
-          tabBarButton: (props) => (
-            <TouchableOpacity
-              testID={props.testID}
-              accessibilityLabel={props.accessibilityLabel}
-              onPress={props.onPress || undefined}
-              onLongPress={props.onLongPress || undefined}
-              activeOpacity={0.85}
-              style={[
-                props.style,
-                {
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                },
-              ]}
-            >
-              {props.children}
-            </TouchableOpacity>
-          ),
+          tabBarActiveBackgroundColor: 'transparent',
+          tabBarItemStyle: {
+            borderRadius: 0,
+            marginHorizontal: 0,
+            marginVertical: 0,
+          },
           tabBarIcon: () => (
             <View
               style={[
@@ -187,6 +135,7 @@ export const TabNavigator = () => {
   );
 };
 
+
 const styles = StyleSheet.create({
   createButton: {
     width: 44,
@@ -206,24 +155,5 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     lineHeight: 28,
     textAlign: 'center',
-  },
-  tabItem: {
-    flex: 1,
-    marginHorizontal: 3,
-    marginVertical: 2,
-    paddingVertical: 4,
-    paddingHorizontal: 4,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tabItemActive: {
-    borderWidth: 1,
-    opacity: 1,
-  },
-  tabItemInactive: {
-    borderWidth: 1,
-    borderColor: 'transparent',
-    opacity: 0.68,
   },
 });
