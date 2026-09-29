@@ -49,6 +49,23 @@ export class HttpExceptionFilter implements ExceptionFilter {
           code = resObj.code;
         }
       }
+    } else if (
+      exception &&
+      typeof exception === 'object' &&
+      (('status' in exception && typeof (exception as any).status === 'number') ||
+       ('statusCode' in exception && typeof (exception as any).statusCode === 'number'))
+    ) {
+      status = (exception as any).status || (exception as any).statusCode;
+      code = this.getErrorCodeFromStatus(status);
+      message = (exception as any).message || message;
+    } else if (
+      exception instanceof Error &&
+      (exception.message?.includes('invalid byte sequence') ||
+       exception.message?.includes('22021'))
+    ) {
+      status = HttpStatus.BAD_REQUEST;
+      code = 'BAD_REQUEST';
+      message = 'Invalid input encoding or byte sequence';
     } else if (exception instanceof Error) {
       this.logger.error(
         `Unhandled Exception: ${exception.message}`,
