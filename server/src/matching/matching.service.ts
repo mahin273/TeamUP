@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ExperienceLevel, MemberStatus } from '@prisma/client';
 import { MatchingCandidate } from './interfaces/matching-candidate.interface';
@@ -87,6 +91,16 @@ export class MatchingService {
     }
 
     const targetProject = project!;
+
+    if (
+      requesterUserId &&
+      targetProject.creatorId &&
+      targetProject.creatorId !== requesterUserId
+    ) {
+      throw new ForbiddenException(
+        'Only the project owner can view recommendations',
+      );
+    }
 
     // 2. Build exclusion list (project creator + accepted active team members + requester)
     const excludedUserIds = new Set<string>([
@@ -244,5 +258,24 @@ export class MatchingService {
     candidates.sort((a, b) => b.matchScore - a.matchScore);
 
     return candidates;
+  }
+
+  calculateScore(p: {
+    overlapCount: number;
+    requiredCount: number;
+    experienceMatch: number;
+    avgEvaluation: number;
+    availabilityMatch: number;
+  }): number {
+    const skillPart =
+      p.requiredCount === 0
+        ? 0
+        : Math.min(p.overlapCount / p.requiredCount, 1.0);
+    const total =
+      skillPart * 0.5 +
+      p.experienceMatch * 0.2 +
+      p.avgEvaluation * 0.2 +
+      p.availabilityMatch * 0.1;
+    return Math.min(Math.max(total, 0), 1.0);
   }
 }

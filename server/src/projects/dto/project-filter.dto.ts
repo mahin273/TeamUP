@@ -9,6 +9,10 @@ export class ProjectFilterDto {
 
   @IsOptional()
   @IsString()
+  q?: string;
+
+  @IsOptional()
+  @IsString()
   domain?: string;
 
   @IsOptional()

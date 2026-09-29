@@ -1,10 +1,38 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { BookmarkType, MemberStatus } from '@prisma/client';
 
 @Injectable()
 export class BookmarksService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Delete a bookmark by its primary key ID
+   */
+  async deleteBookmarkById(userId: string, bookmarkId: string) {
+    const bookmark = await this.prisma.bookmark.findUnique({
+      where: { id: bookmarkId },
+    });
+    if (!bookmark) {
+      throw new NotFoundException(`Bookmark '${bookmarkId}' not found`);
+    }
+    if (bookmark.userId !== userId) {
+      throw new ForbiddenException(
+        "You cannot delete another user's bookmark",
+      );
+    }
+    await this.prisma.bookmark.delete({
+      where: { id: bookmarkId },
+    });
+    return {
+      bookmarked: false,
+      message: 'Bookmark removed successfully',
+    };
+  }
 
   /**
    * Validate that the referenced target entity exists in the database

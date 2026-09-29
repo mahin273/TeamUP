@@ -5,13 +5,44 @@ import {
   IsInt,
   Min,
   Max,
-  MinLength,
-  IsArray,
-  ValidateNested,
   IsEnum,
+  registerDecorator,
+  ValidationOptions,
+  ValidationArguments,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ExperienceLevel } from '@prisma/client';
+
+export function IsValidSkillsArray(validationOptions?: ValidationOptions) {
+  return function (object: Object, propertyName: string) {
+    registerDecorator({
+      name: 'isValidSkillsArray',
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          if (!Array.isArray(value)) return false;
+          for (const item of value) {
+            if (typeof item === 'string') {
+              if (!item.trim()) return false;
+            } else if (item && typeof item === 'object') {
+              if (item.skillId && typeof item.skillId !== 'string') return false;
+              if (item.skillName && typeof item.skillName !== 'string') return false;
+              if (!item.skillId && !item.skillName) return false;
+            } else {
+              return false;
+            }
+          }
+          return true;
+        },
+        defaultMessage(args: ValidationArguments) {
+          return `${args.property} must be an array of strings or skill objects`;
+        },
+      },
+    });
+  };
+}
 
 export class RequiredSkillItemDto {
   @IsOptional()
@@ -32,32 +63,37 @@ export class RequiredSkillItemDto {
 export class CreateProjectDto {
   @IsString({ message: 'title must be a string' })
   @IsNotEmpty({ message: 'title is required' })
-  @MinLength(3, { message: 'title must be at least 3 characters long' })
   title: string;
 
   @IsString({ message: 'description must be a string' })
   @IsNotEmpty({ message: 'description is required' })
-  @MinLength(10, { message: 'description must be at least 10 characters long' })
   description: string;
 
   @IsString({ message: 'domain must be a string' })
   @IsNotEmpty({ message: 'domain is required' })
   domain: string;
 
+  @IsOptional()
   @IsString({ message: 'semester must be a string' })
-  @IsNotEmpty({ message: 'semester is required' })
-  semester: string;
+  semester?: string;
 
   @IsOptional()
   @IsInt({ message: 'maxMembers must be an integer' })
-  @Min(2, { message: 'maxMembers must be at least 2' })
+  @Min(1, { message: 'maxMembers must be at least 1' })
   @Max(20, { message: 'maxMembers cannot exceed 20' })
   @Type(() => Number)
   maxMembers?: number;
 
   @IsOptional()
-  @IsArray({ message: 'requiredSkills must be an array' })
-  @ValidateNested({ each: true })
-  @Type(() => RequiredSkillItemDto)
-  requiredSkills?: RequiredSkillItemDto[];
+  @IsInt({ message: 'teamSizeNeeded must be an integer' })
+  @Min(1, { message: 'teamSizeNeeded must be at least 1' })
+  @Max(20, { message: 'teamSizeNeeded cannot exceed 20' })
+  @Type(() => Number)
+  teamSizeNeeded?: number;
+
+  @IsOptional()
+  @IsValidSkillsArray({
+    message: 'requiredSkills must be an array of strings or valid skill objects',
+  })
+  requiredSkills?: any[];
 }

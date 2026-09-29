@@ -252,4 +252,58 @@ describe('MatchingService', () => {
       expect(results[0].matchScore).toBe(94);
     });
   });
+
+  describe('MatchingService.score (golden cases)', () => {
+    const golden = [
+      {
+        name: 'perfect',
+        overlap: 3,
+        required: 3,
+        experienceMatch: 1,
+        avgEvaluation: 1,
+        availabilityMatch: 1,
+        expected: 1.0,
+      },
+      {
+        name: 'half skills, rest perfect',
+        overlap: 1,
+        required: 2,
+        experienceMatch: 1,
+        avgEvaluation: 1,
+        availabilityMatch: 1,
+        expected: 0.25 + 0.5,
+      },
+      {
+        name: 'no skills, unavailable',
+        overlap: 0,
+        required: 3,
+        experienceMatch: 0,
+        avgEvaluation: 0,
+        availabilityMatch: 0,
+        expected: 0,
+      },
+    ];
+
+    it.each(golden)('MATCH-U12 golden: $name', (g) => {
+      const actual = service.calculateScore({
+        overlapCount: g.overlap,
+        requiredCount: g.required,
+        experienceMatch: g.experienceMatch,
+        avgEvaluation: g.avgEvaluation,
+        availabilityMatch: g.availabilityMatch,
+      });
+      expect(actual).toBeCloseTo(g.expected, 3);
+    });
+
+    it('MATCH-U10 max score never exceeds 1', () => {
+      const s = service.calculateScore({
+        overlapCount: 10,
+        requiredCount: 3,
+        experienceMatch: 1,
+        avgEvaluation: 1,
+        availabilityMatch: 1,
+      });
+      expect(s).toBeLessThanOrEqual(1.0001);
+    });
+  });
 });

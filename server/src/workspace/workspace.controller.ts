@@ -16,7 +16,7 @@ import type { AuthenticatedUser } from '../auth/interfaces/jwt-payload.interface
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
-@Controller('projects/:id/workspace')
+@Controller()
 export class WorkspaceController {
   constructor(private readonly workspaceService: WorkspaceService) {}
 
@@ -24,7 +24,7 @@ export class WorkspaceController {
    * Get team workspace overview, metrics, and recent activities
    * Protected by both JwtAuthGuard and ProjectMemberGuard
    */
-  @Get()
+  @Get(['projects/:id/workspace'])
   @UseGuards(JwtAuthGuard, ProjectMemberGuard)
   async getWorkspaceOverview(
     @CurrentUser() user: AuthenticatedUser,
@@ -35,9 +35,9 @@ export class WorkspaceController {
 
   /**
    * Get all tasks for the project (Kanban board)
-   * GET /projects/:id/tasks
+   * GET /projects/:id/tasks or /projects/:id/workspace/tasks
    */
-  @Get('tasks')
+  @Get(['projects/:id/tasks', 'projects/:id/workspace/tasks'])
   @UseGuards(JwtAuthGuard)
   async getProjectTasks(
     @CurrentUser() user: AuthenticatedUser,
@@ -48,9 +48,9 @@ export class WorkspaceController {
 
   /**
    * Create a new task
-   * POST /projects/:id/tasks
+   * POST /projects/:id/tasks or /projects/:id/workspace/tasks
    */
-  @Post('tasks')
+  @Post(['projects/:id/tasks', 'projects/:id/workspace/tasks'])
   @UseGuards(JwtAuthGuard)
   async createTask(
     @CurrentUser() user: AuthenticatedUser,
@@ -62,9 +62,14 @@ export class WorkspaceController {
 
   /**
    * Update a task
-   * PATCH /tasks/:taskId
+   * PATCH /workspace/tasks/:taskId or /tasks/:taskId
    */
-  @Patch('tasks/:taskId')
+  @Patch([
+    'workspace/tasks/:taskId',
+    'tasks/:taskId',
+    'projects/:id/workspace/tasks/:taskId',
+    'projects/:id/tasks/:taskId',
+  ])
   @UseGuards(JwtAuthGuard)
   async updateTask(
     @CurrentUser() user: AuthenticatedUser,
@@ -76,9 +81,14 @@ export class WorkspaceController {
 
   /**
    * Delete a task
-   * DELETE /tasks/:taskId
+   * DELETE /workspace/tasks/:taskId or /tasks/:taskId
    */
-  @Delete('tasks/:taskId')
+  @Delete([
+    'workspace/tasks/:taskId',
+    'tasks/:taskId',
+    'projects/:id/workspace/tasks/:taskId',
+    'projects/:id/tasks/:taskId',
+  ])
   @UseGuards(JwtAuthGuard)
   async deleteTask(
     @CurrentUser() user: AuthenticatedUser,

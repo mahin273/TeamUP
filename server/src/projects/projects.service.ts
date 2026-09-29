@@ -63,7 +63,9 @@ export class ProjectsService {
       minimumExperience: ExperienceLevel;
     }> = [];
 
-    for (const item of skillsInput) {
+    for (const rawItem of skillsInput) {
+      const item: RequiredSkillItemDto =
+        typeof rawItem === 'string' ? { skillName: rawItem } : rawItem;
       let finalSkillId = item.skillId;
 
       if (!finalSkillId && item.skillName) {
@@ -122,8 +124,8 @@ export class ProjectsService {
           title: dto.title.trim(),
           description: dto.description.trim(),
           domain: dto.domain.trim(),
-          semester: dto.semester.trim(),
-          maxMembers: dto.maxMembers ?? 4,
+          semester: (dto.semester || 'Fall 2026').trim(),
+          maxMembers: dto.maxMembers ?? dto.teamSizeNeeded ?? 4,
           creatorId,
           status: ProjectStatus.OPEN,
           members: {
@@ -188,7 +190,8 @@ export class ProjectsService {
    */
   async findAll(query: ProjectFilterDto) {
     const {
-      search,
+      search: rawSearch,
+      q,
       domain,
       tech,
       semester,
@@ -198,6 +201,7 @@ export class ProjectsService {
       limit = 10,
     } = query;
 
+    const search = rawSearch || q;
     const skip = (page - 1) * limit;
     const where: Prisma.ProjectWhereInput = {};
 
@@ -320,7 +324,8 @@ export class ProjectsService {
    */
   async search(query: ProjectFilterDto) {
     const {
-      search,
+      search: rawSearch,
+      q,
       domain,
       tech,
       semester,
@@ -330,6 +335,7 @@ export class ProjectsService {
       limit = 20,
     } = query;
 
+    const search = rawSearch || q;
     const where: Prisma.ProjectWhereInput = {};
 
     if (search && search.trim()) {
@@ -745,9 +751,17 @@ export class ProjectsService {
       throw new NotFoundException(`Project with ID '${projectId}' not found`);
     }
 
+    if (dto.userId === leaderId) {
+      throw new BadRequestException('You cannot invite yourself');
+    }
+
     const isLeader = await this.isProjectLeader(projectId, leaderId);
     if (!isLeader) {
       throw new ForbiddenException('Only a project leader can invite members');
+    }
+
+    if (project.maxMembers && project._count.members >= project.maxMembers) {
+      throw new ConflictException('Project team is already full');
     }
 
     const targetUser = await this.prisma.user.findUnique({
@@ -773,16 +787,28 @@ export class ProjectsService {
         );
       }
       // If pending or rejected, update to invited state
-      return this.prisma.projectMember.update({
+      const updated = await this.prisma.projectMember.update({
         where: { id: existingMember.id },
         data: {
           status: MemberStatus.PENDING,
           role: dto.role ?? ProjectRole.MEMBER,
         },
       });
+
+      await this.prisma.notification.create({
+        data: {
+          userId: dto.userId,
+          title: 'Project Invitation',
+          body: `You have been invited to join project ${project.title}`,
+          type: 'INVITE',
+          data: { projectId },
+        },
+      });
+
+      return updated;
     }
 
-    return this.prisma.projectMember.create({
+    const created = await this.prisma.projectMember.create({
       data: {
         projectId,
         userId: dto.userId,
@@ -790,6 +816,18 @@ export class ProjectsService {
         status: MemberStatus.PENDING,
       },
     });
+
+    await this.prisma.notification.create({
+      data: {
+        userId: dto.userId,
+        title: 'Project Invitation',
+        body: `You have been invited to join project ${project.title}`,
+        type: 'INVITE',
+        data: { projectId },
+      },
+    });
+
+    return created;
   }
 
   /**

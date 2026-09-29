@@ -94,4 +94,15 @@ export class BookmarksController {
       targetId,
     );
   }
+
+  /**
+   * Remove a bookmark by its primary ID
+   */
+  @Delete(':id')
+  async deleteBookmarkById(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.bookmarksService.deleteBookmarkById(user.userId, id);
+  }
 }
