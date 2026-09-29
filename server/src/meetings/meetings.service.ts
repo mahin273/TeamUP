@@ -57,14 +57,22 @@ export class MeetingsService {
       );
     }
 
-    if (!dto.slots || dto.slots.length < 2) {
+    const slots = dto.slots ?? dto.proposedSlots;
+
+    if (!slots || slots.length < 1) {
       throw new BadRequestException(
-        'At least 2 candidate slots must be proposed',
+        'At least 1 candidate slot must be proposed',
+      );
+    }
+
+    if (slots.length > 5) {
+      throw new BadRequestException(
+        'Maximum 5 candidate slots can be proposed',
       );
     }
 
     const now = Date.now();
-    for (const slot of dto.slots) {
+    for (const slot of slots) {
       const start = new Date(slot.startTime).getTime();
       const end = new Date(slot.endTime).getTime();
 
@@ -92,7 +100,7 @@ export class MeetingsService {
         description: dto.description?.trim(),
         status: MeetingStatus.VOTING,
         slots: {
-          create: dto.slots.map((s) => ({
+          create: slots.map((s) => ({
             startTime: new Date(s.startTime),
             endTime: new Date(s.endTime),
           })),
@@ -118,20 +126,22 @@ export class MeetingsService {
       recipientIds.add(project.creatorId);
     }
 
-    for (const recipientId of recipientIds) {
-      void this.notificationsService
-        .notifyUser(recipientId, {
-          title: `New Meeting Proposed: ${dto.title}`,
-          body: 'Vote on your available time slots for the team meeting.',
-          type: 'MEETING_VOTING',
-          data: { meetingId: meeting.id, projectId },
-        })
-        .catch((err: Error) =>
-          this.logger.warn(
-            `Failed to notify member ${recipientId}: ${err.message}`,
+    await Promise.all(
+      Array.from(recipientIds).map((recipientId) =>
+        this.notificationsService
+          .notifyUser(recipientId, {
+            title: `New Meeting Proposed: ${dto.title}`,
+            body: 'Vote on your available time slots for the team meeting.',
+            type: 'MEETING_VOTING',
+            data: { meetingId: meeting.id, projectId },
+          })
+          .catch((err: Error) =>
+            this.logger.warn(
+              `Failed to notify member ${recipientId}: ${err.message}`,
+            ),
           ),
-        );
-    }
+      ),
+    );
 
     return meeting;
   }
@@ -259,21 +269,6 @@ export class MeetingsService {
    * Cast votes for candidate meeting slots
    */
   async voteSlots(userId: string, meetingId: string, dto: VoteSlotsDto) {
-    const targetSlotIds =
-      dto.slotIds && dto.slotIds.length > 0
-        ? dto.slotIds
-        : dto.slotId
-          ? [dto.slotId]
-          : [];
-
-    if (targetSlotIds.length === 0) {
-      throw new BadRequestException(
-        'At least one slotId must be provided to vote',
-      );
-    }
-
-    const uniqueSlotIds = Array.from(new Set(targetSlotIds));
-
     const meeting = await this.prisma.meeting.findUnique({
       where: { id: meetingId },
       include: {
@@ -305,6 +300,35 @@ export class MeetingsService {
         'You are not an active member of this project',
       );
     }
+
+    const targetStartTime = dto.slotStartTime || dto.startTime;
+    const targetSlotIds: string[] =
+      dto.slotIds && dto.slotIds.length > 0
+        ? [...dto.slotIds]
+        : dto.slotId
+          ? [dto.slotId]
+          : [];
+
+    if (targetStartTime) {
+      const targetTime = new Date(targetStartTime).getTime();
+      const matched = meeting.slots.find(
+        (s) => new Date(s.startTime).getTime() === targetTime,
+      );
+      if (!matched) {
+        throw new BadRequestException(
+          `Slot with startTime '${targetStartTime}' was not proposed for this meeting`,
+        );
+      }
+      targetSlotIds.push(matched.id);
+    }
+
+    if (targetSlotIds.length === 0) {
+      throw new BadRequestException(
+        'At least one slotId or slotStartTime must be provided to vote',
+      );
+    }
+
+    const uniqueSlotIds = Array.from(new Set(targetSlotIds));
 
     const validSlotIds = new Set(meeting.slots.map((s) => s.id));
     for (const sid of uniqueSlotIds) {
@@ -459,26 +483,28 @@ export class MeetingsService {
     memberIds.add(meeting.project.creatorId);
 
     const formattedDate = new Date(winningSlot.startTime).toISOString();
-    for (const recipientId of memberIds) {
-      void this.notificationsService
-        .notifyUser(recipientId, {
-          title: `Meeting Confirmed: ${meeting.title}`,
-          body: `Meeting scheduled for ${formattedDate}`,
-          type: 'MEETING_CONFIRMED',
-          data: {
-            meetingId: meeting.id,
-            projectId: meeting.projectId,
-            slotId: winningSlot.id,
-            startTime: winningSlot.startTime.toISOString(),
-            endTime: winningSlot.endTime.toISOString(),
-          },
-        })
-        .catch((err: Error) =>
-          this.logger.warn(
-            `Failed to notify member ${recipientId}: ${err.message}`,
+    await Promise.all(
+      Array.from(memberIds).map((recipientId) =>
+        this.notificationsService
+          .notifyUser(recipientId, {
+            title: `Meeting Confirmed: ${meeting.title}`,
+            body: `Meeting scheduled for ${formattedDate}`,
+            type: 'MEETING_CONFIRMED',
+            data: {
+              meetingId: meeting.id,
+              projectId: meeting.projectId,
+              slotId: winningSlot.id,
+              startTime: winningSlot.startTime.toISOString(),
+              endTime: winningSlot.endTime.toISOString(),
+            },
+          })
+          .catch((err: Error) =>
+            this.logger.warn(
+              `Failed to notify member ${recipientId}: ${err.message}`,
+            ),
           ),
-        );
-    }
+      ),
+    );
 
     return finalized;
   }

@@ -8,6 +8,7 @@ import {
   MinLength,
   ValidateNested,
   ArrayMinSize,
+  ArrayMaxSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -41,9 +42,19 @@ export class CreateMeetingDto {
   })
   description?: string;
 
+  @IsOptional()
   @IsArray({ message: 'Meeting slots must be an array' })
-  @ArrayMinSize(2, { message: 'At least 2 candidate slots must be proposed' })
+  @ArrayMinSize(1, { message: 'At least 1 candidate slot must be proposed' })
+  @ArrayMaxSize(5, { message: 'Maximum 5 candidate slots can be proposed' })
   @ValidateNested({ each: true })
   @Type(() => CreateMeetingSlotDto)
-  slots: CreateMeetingSlotDto[];
+  slots?: CreateMeetingSlotDto[];
+
+  @IsOptional()
+  @IsArray({ message: 'Meeting proposedSlots must be an array' })
+  @ArrayMinSize(1, { message: 'At least 1 candidate slot must be proposed' })
+  @ArrayMaxSize(5, { message: 'Maximum 5 candidate slots can be proposed' })
+  @ValidateNested({ each: true })
+  @Type(() => CreateMeetingSlotDto)
+  proposedSlots?: CreateMeetingSlotDto[];
 }

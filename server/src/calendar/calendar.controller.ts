@@ -25,7 +25,7 @@ export class CalendarController {
   /**
    * Get unified calendar aggregator feed across active projects
    */
-  @Get('calendar/feed')
+  @Get(['calendar/feed', 'calendar'])
   async getUnifiedFeed(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: CalendarFeedQueryDto,

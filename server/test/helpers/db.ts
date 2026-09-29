@@ -131,12 +131,96 @@ const messageProxy = new Proxy((prisma as any).message, {
   },
 });
 
+const meetingVoteProxy = new Proxy((prisma as any).meetingVote, {
+  get(target, prop, receiver) {
+    const orig = Reflect.get(target, prop, receiver);
+    if (
+      ['count', 'findMany', 'findFirst', 'deleteMany'].includes(String(prop))
+    ) {
+      return async (...args: any[]) => {
+        if (args[0]?.where && 'meetingId' in args[0].where) {
+          const { meetingId, ...rest } = args[0].where;
+          args[0].where = {
+            slot: { meetingId },
+            ...rest,
+          };
+        }
+        return orig.apply(target, args);
+      };
+    }
+    return orig;
+  },
+});
+
+const meetingProxy = new Proxy((prisma as any).meeting, {
+  get(target, prop, receiver) {
+    const orig = Reflect.get(target, prop, receiver);
+    if (
+      [
+        'findUnique',
+        'findFirst',
+        'findMany',
+        'findUniqueOrThrow',
+        'findFirstOrThrow',
+      ].includes(String(prop))
+    ) {
+      return async (...args: any[]) => {
+        const queryArgs = args[0] ? { ...args[0] } : {};
+        if (!queryArgs.select) {
+          queryArgs.include = {
+            ...(queryArgs.include || {}),
+            selectedSlot: true,
+            slots: true,
+          };
+        }
+        const res = await orig.apply(target, [queryArgs]);
+        const mapMeeting = (m: any) => {
+          if (m && typeof m === 'object') {
+            if (!('confirmedSlot' in m)) {
+              Object.defineProperty(m, 'confirmedSlot', {
+                get() {
+                  return m.selectedSlot ? m.selectedSlot.startTime : null;
+                },
+                enumerable: true,
+              });
+            }
+            if (!('proposedSlots' in m)) {
+              Object.defineProperty(m, 'proposedSlots', {
+                get() {
+                  return (m.slots ?? []).map((s: any) => ({
+                    id: s.id,
+                    startTime:
+                      s.startTime instanceof Date
+                        ? s.startTime.toISOString()
+                        : s.startTime,
+                    endTime:
+                      s.endTime instanceof Date
+                        ? s.endTime.toISOString()
+                        : s.endTime,
+                  }));
+                },
+                enumerable: true,
+              });
+            }
+          }
+          return m;
+        };
+        if (Array.isArray(res)) return res.map(mapMeeting);
+        return mapMeeting(res);
+      };
+    }
+    return orig;
+  },
+});
+
 Object.defineProperty(prisma, 'skillTag', { get: () => skillTagProxy });
 Object.defineProperty(prisma, 'fileAsset', { get: () => (prisma as any).projectFile });
 Object.defineProperty(prisma, 'evaluation', { get: () => (prisma as any).peerEvaluation });
 Object.defineProperty(prisma, 'user', { get: () => userProxy });
 Object.defineProperty(prisma, 'projectMember', { get: () => projectMemberProxy });
 Object.defineProperty(prisma, 'message', { get: () => messageProxy });
+Object.defineProperty(prisma, 'meetingVote', { get: () => meetingVoteProxy });
+Object.defineProperty(prisma, 'meeting', { get: () => meetingProxy });
 
 // Truncate every table between tests
 export async function resetDb() {

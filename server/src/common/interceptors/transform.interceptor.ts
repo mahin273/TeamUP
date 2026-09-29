@@ -28,10 +28,19 @@ export class TransformInterceptor<T> implements NestInterceptor<
         ) {
           return data as ApiResponse<T>;
         }
-        return {
+        const res: any = {
           success: true,
           data: data ?? null,
         };
+        if (
+          data &&
+          typeof data === 'object' &&
+          !Array.isArray(data) &&
+          'id' in data
+        ) {
+          res.id = (data as any).id;
+        }
+        return res;
       }),
     );
   }
