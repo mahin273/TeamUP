@@ -1,6 +1,7 @@
 import {
   Injectable,
   Logger,
+  BadRequestException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -9,6 +10,7 @@ import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { GenerateIdeaDto } from './dto/generate-idea.dto';
 import { GeneratedIdea } from './interfaces/generated-idea.interface';
+import { LlmClient } from './llm.client';
 
 const DEFAULT_CACHE_TTL_HOURS = 24;
 
@@ -43,6 +45,7 @@ export class AiIdeaService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly llmClient: LlmClient,
   ) {}
 
   /**
@@ -58,8 +61,15 @@ export class AiIdeaService {
       );
     }
 
+    if (!dto.domain || !dto.domain.trim()) {
+      throw new BadRequestException('domain is required');
+    }
+
     const domain = dto.domain.trim();
     const rawTechs: string[] = [];
+    if (dto.tech && typeof dto.tech === 'string') {
+      rawTechs.push(...dto.tech.split(','));
+    }
     if (Array.isArray(dto.techStack)) {
       rawTechs.push(...dto.techStack);
     }
@@ -71,7 +81,7 @@ export class AiIdeaService {
       ...new Set(rawTechs.map((t) => t.trim()).filter(Boolean)),
     ];
     if (techStack.length === 0) {
-      techStack.push('TypeScript', 'React Native', 'NestJS');
+      throw new BadRequestException('tech is required');
     }
 
     const difficulty = dto.difficulty || ExperienceLevel.INTERMEDIATE;
@@ -84,6 +94,7 @@ export class AiIdeaService {
       this.logger.log(`Cache hit for query hash: ${queryHash}`);
       return {
         ...cached,
+        stack: (cached as any).stack || cached.techStack,
         isCached: true,
       };
     }
@@ -93,31 +104,19 @@ export class AiIdeaService {
     );
 
     // 2. Generate idea via LLM or procedural generator
-    const apiKey = this.configService.get<string>('LLM_API_KEY');
-    let generated: GeneratedIdea;
-
-    if (apiKey && apiKey !== 'your_llm_api_key' && apiKey.trim().length > 0) {
-      generated = await this.callLlm(
-        dto.topic,
-        domain,
-        techStack,
-        difficulty,
-        apiKey,
-      );
-    } else {
-      generated = this.generateProceduralFallback(
-        domain,
-        techStack,
-        difficulty,
-        dto.topic,
-      );
-    }
+    const generated = await this.callLlm(
+      dto.topic,
+      domain,
+      techStack,
+      difficulty,
+    );
 
     // 3. Store result in DB cache
     await this.saveToCache(queryHash, domain, techStack.join(', '), generated);
 
     return {
       ...generated,
+      stack: (generated as any).stack || generated.techStack,
       isCached: false,
     };
   }
@@ -215,12 +214,7 @@ export class AiIdeaService {
     domain: string,
     techStack: string[],
     difficulty: ExperienceLevel,
-    apiKey: string,
   ): Promise<GeneratedIdea> {
-    const customUrl = this.configService.get<string>('LLM_API_URL');
-    const model =
-      this.configService.get<string>('LLM_MODEL') || 'gemini-3.6-flash';
-
     const promptText = `You are a software architect and university project advisor.
 Generate an innovative, feasible student capstone or hackathon project idea tailored to these requirements:
 Domain: ${domain}
@@ -243,77 +237,37 @@ Respond ONLY with a valid JSON object matching this exact structure:
 }`;
 
     try {
-      let endpoint = customUrl;
-      let requestBody: any;
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-
-      if (!endpoint) {
-        // Default to Google Gemini generateContent API
-        endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        requestBody = {
-          contents: [{ parts: [{ text: promptText }] }],
-          generationConfig: {
-            responseMimeType: 'application/json',
-          },
-        };
-      } else {
-        // Generic OpenAI-compatible chat completion payload
-        headers.Authorization = `Bearer ${apiKey}`;
-        requestBody = {
-          model,
-          messages: [
-            {
-              role: 'system',
-              content:
-                'You are an AI advisor that returns strictly structured JSON project proposals.',
-            },
-            { role: 'user', content: promptText },
-          ],
-          response_format: { type: 'json_object' },
-        };
-      }
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(10000),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        this.logger.error(
-          `LLM API returned status ${response.status}: ${errorText}`,
-        );
-        throw new ServiceUnavailableException(
-          'LLM Service Busy — AI generator is experiencing high demand. Please try again in a moment.',
-        );
-      }
-
-      const data = (await response.json()) as GeminiResponse;
       let rawJson = '';
-
-      if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-        rawJson = data.candidates[0].content.parts[0].text;
-      } else if (data?.choices?.[0]?.message?.content) {
-        rawJson = data.choices[0].message.content;
-      } else {
-        rawJson = JSON.stringify(data);
+      if (this.llmClient) {
+        rawJson = await this.llmClient.complete(promptText);
       }
 
       // Strip markdown code fences if present
-      const cleaned = rawJson
+      const cleaned = (rawJson || '')
         .replace(/^```(?:json)?\s*/i, '')
         .replace(/\s*```$/i, '')
         .trim();
 
       const parsed = JSON.parse(cleaned) as LlmParsedOutput;
 
+      if (
+        !parsed ||
+        !parsed.title ||
+        !parsed.problem ||
+        !parsed.features ||
+        !parsed.roadmap
+      ) {
+        return this.generateProceduralFallback(
+          domain,
+          techStack,
+          difficulty,
+          topic,
+        );
+      }
+
       return {
         id: `gen-${crypto.randomUUID()}`,
-        title: parsed.title || `${domain} Intelligent Platform`,
+        title: parsed.title,
         description:
           parsed.description ||
           `An automated platform solving key challenges in ${domain}.`,
@@ -338,13 +292,14 @@ Respond ONLY with a valid JSON object matching this exact structure:
           : ['Phase 1: Setup', 'Phase 2: Core MVP', 'Phase 3: Launch'],
       };
     } catch (err: unknown) {
-      if (err instanceof ServiceUnavailableException) {
-        throw err;
-      }
-      const msg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`Failed to generate idea via LLM: ${msg}`);
-      throw new ServiceUnavailableException(
-        'LLM Service Busy — AI generator is experiencing high demand. Please try again in a moment.',
+      this.logger.warn(
+        `LLM failed, falling back to procedural generation: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return this.generateProceduralFallback(
+        domain,
+        techStack,
+        difficulty,
+        topic,
       );
     }
   }

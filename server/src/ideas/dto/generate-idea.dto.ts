@@ -13,9 +13,15 @@ import { ExperienceLevel } from '@prisma/client';
 export class GenerateIdeaDto {
   @IsString()
   @IsNotEmpty()
-  @MinLength(2)
-  @MaxLength(50)
+  @MinLength(1)
+  @MaxLength(100)
   domain: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  tech?: string;
 
   @IsOptional()
   @IsArray()

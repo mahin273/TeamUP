@@ -42,7 +42,9 @@ export class NotificationsController {
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: NotificationQueryDto,
   ) {
-    return this.notificationsService.getUserNotifications(user.userId, query);
+    const { notifications, meta } =
+      await this.notificationsService.getUserNotifications(user.userId, query);
+    return Object.assign(notifications, { meta });
   }
 
   /**
