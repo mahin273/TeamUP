@@ -46,7 +46,7 @@ export class AuthService {
         { secret: accessSecret, expiresIn: '15m' },
       ),
       this.jwtService.signAsync(
-        { sub: userId },
+        { sub: userId, jti: crypto.randomUUID() },
         { secret: refreshSecret, expiresIn: '7d' },
       ),
     ]);

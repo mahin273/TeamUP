@@ -51,6 +51,16 @@ export async function registerUser(
   }
 
   const dbUser = await prisma.user.findUnique({ where: { email } });
+  const latestToken = await prisma.refreshToken.findFirst({
+    where: { userId: dbUser!.id },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (latestToken) {
+    await prisma.refreshToken.deleteMany({
+      where: { userId: dbUser!.id, id: { not: latestToken.id } },
+    });
+  }
+
   return {
     id: dbUser!.id,
     email,
