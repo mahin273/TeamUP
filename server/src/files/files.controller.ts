@@ -9,9 +9,12 @@ import {
   UploadedFile,
   Res,
   HttpStatus,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
+import * as path from 'path';
 import { FilesService } from './files.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -34,10 +37,7 @@ export class FilesController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) {
-      return {
-        success: false,
-        error: 'No file provided',
-      };
+      throw new BadRequestException('No file provided');
     }
 
     const uploadedFile = await this.filesService.uploadFile(
@@ -99,11 +99,15 @@ export class FilesController {
   @UseGuards(JwtAuthGuard)
   async downloadFile(
     @CurrentUser() user: AuthenticatedUser,
+    @Param('id') projectId: string,
     @Param('fileId') fileId: string,
     @Res() res: Response,
   ) {
     try {
       const file = await this.filesService.getFile(fileId, user.userId);
+      if (projectId && file.projectId !== projectId) {
+        throw new NotFoundException('File does not belong to this project');
+      }
       const filePath = await this.filesService.getFilePath(
         fileId,
         user.userId,
@@ -118,7 +122,10 @@ export class FilesController {
       res.setHeader('Content-Length', file.fileSize);
 
       // Stream the file
-      res.sendFile(filePath, { root: '.' }, (err) => {
+      const absolutePath = path.isAbsolute(filePath)
+        ? filePath
+        : path.resolve(filePath);
+      res.sendFile(absolutePath, (err) => {
         if (err) {
           console.error('Error sending file:', err);
           if (!res.headersSent) {
@@ -130,7 +137,10 @@ export class FilesController {
         }
       });
     } catch (error) {
-      res.status(HttpStatus.NOT_FOUND).json({
+      const status =
+        error.status ||
+        (typeof error.getStatus === 'function' ? error.getStatus() : 404);
+      res.status(status).json({
         success: false,
         error: error.message,
       });

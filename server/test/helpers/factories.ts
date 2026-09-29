@@ -3,7 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import { faker } from '@faker-js/faker';
 import { R } from './routes';
 import { CFG } from './config';
-import { bearer, TestUser } from './auth';
+import { bearer, TestUser, registerUser } from './auth';
 import { prisma } from './db';
 
 export async function addSkill(
@@ -88,7 +88,6 @@ export async function createTask(
 
 // A project with an owner and N accepted members
 export async function projectWithTeam(app: INestApplication, memberCount = 2) {
-  const { registerUser } = await import('./auth');
   const owner = await registerUser(app);
   const project = await createProject(app, owner);
   const members: TestUser[] = [];

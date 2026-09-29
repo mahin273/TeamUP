@@ -16,7 +16,7 @@ const mkdirAsync = promisify(fs.mkdir);
 @Injectable()
 export class FilesService {
   private readonly uploadDir: string;
-  private readonly maxFileSize = 50 * 1024 * 1024; // 50MB
+  private readonly maxFileSize = 10 * 1024 * 1024; // 10MB
   private readonly allowedMimeTypes = [
     // Documents
     'application/pdf',
@@ -94,6 +94,19 @@ export class FilesService {
       );
     }
 
+    if (file.originalname && file.originalname.toLowerCase().endsWith('.exe')) {
+      throw new BadRequestException('Executable files are not allowed');
+    }
+
+    if (file.buffer && file.buffer.length >= 2) {
+      // Check for DOS/Windows PE executable magic bytes: MZ
+      if (file.buffer[0] === 0x4d && file.buffer[1] === 0x5a) {
+        throw new BadRequestException(
+          'Executable files disguised as images are not allowed',
+        );
+      }
+    }
+
     // Check MIME type
     if (!this.allowedMimeTypes.includes(file.mimetype)) {
       throw new BadRequestException(
@@ -148,7 +161,8 @@ export class FilesService {
       },
     });
 
-    return projectFile;
+    const { fileUrl, ...safeFile } = projectFile;
+    return safeFile;
   }
 
   /**
@@ -176,13 +190,13 @@ export class FilesService {
       },
     });
 
-    return files;
+    return files.map(({ fileUrl, ...rest }) => rest);
   }
 
   /**
    * Get a single file's metadata
    */
-  async getFile(fileId: string, userId: string) {
+  async getFile(fileId: string, userId: string, includeUrl = false) {
     const file = await this.prisma.projectFile.findUnique({
       where: { id: fileId },
       include: {
@@ -207,6 +221,11 @@ export class FilesService {
 
     await this.verifyProjectMembership(file.projectId, userId);
 
+    if (!includeUrl) {
+      const { fileUrl, ...safeFile } = file;
+      return safeFile as any;
+    }
+
     return file;
   }
 
@@ -214,7 +233,7 @@ export class FilesService {
    * Get file path for download
    */
   async getFilePath(fileId: string, userId: string): Promise<string> {
-    const file = await this.getFile(fileId, userId);
+    const file = await this.getFile(fileId, userId, true);
 
     // Check if file exists on disk
     if (!fs.existsSync(file.fileUrl)) {

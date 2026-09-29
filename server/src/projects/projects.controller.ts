@@ -191,8 +191,12 @@ export class ProjectsController {
    * Get all members for a project
    */
   @Get(':id/members')
-  async getProjectMembers(@Param('id') id: string) {
-    return this.projectsService.getProjectMembers(id);
+  @UseGuards(JwtAuthGuard)
+  async getProjectMembers(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.projectsService.getProjectMembers(id, user.userId);
   }
 
   /**

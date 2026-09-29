@@ -833,13 +833,30 @@ export class ProjectsService {
   /**
    * Get all members for a project
    */
-  async getProjectMembers(projectId: string) {
+  async getProjectMembers(projectId: string, requesterUserId?: string) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
 
     if (!project) {
       throw new NotFoundException(`Project with ID '${projectId}' not found`);
+    }
+
+    if (requesterUserId) {
+      const isOwner = project.creatorId === requesterUserId;
+      const membership = await this.prisma.projectMember.findFirst({
+        where: {
+          projectId,
+          userId: requesterUserId,
+          status: MemberStatus.ACCEPTED,
+        },
+      });
+
+      if (!isOwner && !membership) {
+        throw new ForbiddenException(
+          'You must be an accepted member of this project to view members',
+        );
+      }
     }
 
     return this.prisma.projectMember.findMany({

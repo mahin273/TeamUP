@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { FilesController } from './files.controller';
 import { FilesService } from './files.service';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -8,7 +9,7 @@ import { PrismaModule } from '../prisma/prisma.module';
   imports: [
     PrismaModule,
     MulterModule.register({
-      storage: 'memory', // Use memory storage, service handles disk write
+      storage: memoryStorage(),
       limits: {
         fileSize: 50 * 1024 * 1024, // 50MB
       },

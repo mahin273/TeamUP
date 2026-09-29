@@ -337,6 +337,18 @@ export class WorkspaceService {
       },
     });
 
+    if (dto.assigneeId) {
+      await this.prisma.notification.create({
+        data: {
+          userId: dto.assigneeId,
+          title: 'Task Assignment',
+          body: `You have been assigned to task: ${task.title}`,
+          type: 'TASK_ASSIGNED',
+          data: { taskId: task.id, projectId },
+        },
+      });
+    }
+
     return task;
   }
 
@@ -397,6 +409,18 @@ export class WorkspaceService {
         },
       },
     });
+
+    if (dto.assigneeId && dto.assigneeId !== task.assigneeId) {
+      await this.prisma.notification.create({
+        data: {
+          userId: dto.assigneeId,
+          title: 'Task Assignment',
+          body: `You have been assigned to task: ${updatedTask.title}`,
+          type: 'TASK_ASSIGNED',
+          data: { taskId: updatedTask.id, projectId: task.projectId },
+        },
+      });
+    }
 
     return updatedTask;
   }
