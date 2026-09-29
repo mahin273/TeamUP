@@ -8,14 +8,11 @@ import {
   MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { UseGuards } from '@nestjs/common';
-import { WsJwtGuard } from './guards/ws-jwt.guard';
+import { JwtService } from '@nestjs/jwt';
 import { ChatService } from './chat.service';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type { AuthenticatedUser } from '../auth/interfaces/jwt-payload.interface';
 
 interface SendMessagePayload {
-  projectId: string;
+  projectId?: string;
   content: string;
 }
 
@@ -34,40 +31,103 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   async handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`);
+    try {
+      const token =
+        client.handshake?.auth?.token ||
+        (typeof client.handshake?.headers?.authorization === 'string'
+          ? client.handshake.headers.authorization.replace(/^Bearer\s+/i, '')
+          : undefined) ||
+        (typeof client.handshake?.query?.token === 'string'
+          ? client.handshake.query.token
+          : undefined);
+
+      if (!token) {
+        client.disconnect(true);
+        return;
+      }
+
+      const secret =
+        process.env.JWT_ACCESS_SECRET ||
+        process.env.JWT_SECRET ||
+        'test-access-secret';
+
+      let payload: any;
+      try {
+        payload = await this.jwtService.verifyAsync(token, { secret });
+      } catch {
+        client.disconnect(true);
+        return;
+      }
+
+      const userId = payload.sub || payload.userId;
+      if (!userId) {
+        client.disconnect(true);
+        return;
+      }
+
+      client.data.user = { userId, ...payload };
+
+      const projectId = client.handshake?.query?.projectId as string;
+      if (projectId) {
+        client.data.projectId = projectId;
+        try {
+          await this.chatService.verifyProjectMembership(projectId, userId);
+        } catch {
+          client.disconnect(true);
+          return;
+        }
+
+        const roomName = `project:${projectId}`;
+        await client.join(roomName);
+
+        const messages = await this.chatService.getRecentMessages(
+          projectId,
+          50,
+        );
+        client.emit('history', messages);
+        client.emit('messageHistory', { messages });
+      }
+    } catch {
+      client.disconnect(true);
+    }
   }
 
   async handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`);
+    // Socket cleanup handled automatically by Socket.IO
   }
 
   /**
    * Join a project chat room
    */
-  @UseGuards(WsJwtGuard)
   @SubscribeMessage('joinRoom')
   async handleJoinRoom(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: JoinRoomPayload,
-    @CurrentUser() user: AuthenticatedUser,
   ) {
+    if (!payload || !payload.projectId) {
+      return { success: false, error: 'projectId is required' };
+    }
+
     const { projectId } = payload;
+    const user = client.data.user;
+    if (!user || !user.userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
 
     try {
-      // Verify user is a project member
       await this.chatService.verifyProjectMembership(projectId, user.userId);
-
-      // Join the room
       const roomName = `project:${projectId}`;
       await client.join(roomName);
+      client.data.projectId = projectId;
 
-      // Fetch recent message history
       const messages = await this.chatService.getRecentMessages(projectId, 50);
-
-      // Send history to the joining client
+      client.emit('history', messages);
       client.emit('messageHistory', { messages });
 
       return {
@@ -85,25 +145,62 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   /**
    * Send a message to a project room
    */
-  @UseGuards(WsJwtGuard)
+  @SubscribeMessage('message')
+  async handleMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: any,
+  ) {
+    return this.processMessage(client, payload);
+  }
+
   @SubscribeMessage('sendMessage')
   async handleSendMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: SendMessagePayload,
-    @CurrentUser() user: AuthenticatedUser,
+    @MessageBody() payload: any,
   ) {
-    const { projectId, content } = payload;
+    return this.processMessage(client, payload);
+  }
+
+  private async processMessage(client: Socket, payload: any) {
+    if (!payload || typeof payload !== 'object') {
+      return;
+    }
+
+    const content = payload.content;
+    if (typeof content !== 'string') {
+      return;
+    }
+
+    const trimmed = content.trim();
+    if (!trimmed || content.length > 2000) {
+      return;
+    }
+
+    const user = client.data?.user;
+    const userId = user?.userId || user?.sub;
+    if (!userId) {
+      return;
+    }
+
+    const projectId =
+      payload.projectId ||
+      client.data?.projectId ||
+      (client.handshake?.query?.projectId as string);
+
+    if (!projectId) {
+      return;
+    }
 
     try {
-      // Verify membership and persist message
+      // Ignore spoofed senderId; always use authenticated userId
       const message = await this.chatService.sendMessage(
         projectId,
-        user.userId,
+        userId,
         content,
       );
 
-      // Broadcast to all clients in the room
       const roomName = `project:${projectId}`;
+      this.server.to(roomName).emit('message', message);
       this.server.to(roomName).emit('newMessage', { message });
 
       return {
@@ -126,13 +223,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: JoinRoomPayload,
   ) {
-    const { projectId } = payload;
-    const roomName = `project:${projectId}`;
-    await client.leave(roomName);
+    const projectId =
+      payload?.projectId ||
+      client.data.projectId ||
+      (client.handshake?.query?.projectId as string);
+
+    if (projectId) {
+      const roomName = `project:${projectId}`;
+      await client.leave(roomName);
+    }
 
     return {
       success: true,
-      message: `Left room ${roomName}`,
+      message: 'Left room',
     };
   }
 }

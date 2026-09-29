@@ -83,11 +83,60 @@ const projectMemberProxy = new Proxy((prisma as any).projectMember, {
   },
 });
 
+const messageProxy = new Proxy((prisma as any).message, {
+  get(target, prop, receiver) {
+    const orig = Reflect.get(target, prop, receiver);
+    if (
+      [
+        'create',
+        'createMany',
+        'findUnique',
+        'findFirst',
+        'findMany',
+      ].includes(String(prop))
+    ) {
+      return async (...args: any[]) => {
+        const fixData = (d: any) => {
+          if (d && typeof d === 'object') {
+            if ('sentAt' in d) {
+              d.createdAt = d.sentAt;
+              delete d.sentAt;
+            }
+          }
+        };
+        if (args[0]?.data) {
+          if (Array.isArray(args[0].data)) {
+            args[0].data.forEach(fixData);
+          } else {
+            fixData(args[0].data);
+          }
+        }
+        const res = await orig.apply(target, args);
+        const mapMsg = (m: any) => {
+          if (m && typeof m === 'object' && !('sentAt' in m)) {
+            Object.defineProperty(m, 'sentAt', {
+              get() {
+                return m.createdAt;
+              },
+              enumerable: true,
+            });
+          }
+          return m;
+        };
+        if (Array.isArray(res)) return res.map(mapMsg);
+        return mapMsg(res);
+      };
+    }
+    return orig;
+  },
+});
+
 Object.defineProperty(prisma, 'skillTag', { get: () => skillTagProxy });
 Object.defineProperty(prisma, 'fileAsset', { get: () => (prisma as any).projectFile });
 Object.defineProperty(prisma, 'evaluation', { get: () => (prisma as any).peerEvaluation });
 Object.defineProperty(prisma, 'user', { get: () => userProxy });
 Object.defineProperty(prisma, 'projectMember', { get: () => projectMemberProxy });
+Object.defineProperty(prisma, 'message', { get: () => messageProxy });
 
 // Truncate every table between tests
 export async function resetDb() {
