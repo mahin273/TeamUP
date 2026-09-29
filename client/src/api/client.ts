@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import { tokenStorage } from '../services/tokenStorage';
+import * as tokens from '../storage/tokens';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
@@ -32,7 +32,7 @@ export const apiClient: AxiosInstance = axios.create({
 // Request interceptor to attach JWT token
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    const token = await tokenStorage.getAccessToken();
+    const token = await tokens.getAccessToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -41,21 +41,50 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor to unwrap envelope and throw standardized ApiError
+// Response interceptor to handle token refresh and unwrap envelope
 apiClient.interceptors.response.use(
   (response) => {
-    const body = response.data as ApiResponse;
-    if (body && typeof body === 'object' && 'success' in body) {
-      if (body.success) {
-        return body.data !== undefined ? body.data : body;
-      } else {
-        const errorDetails = body.error || { code: 'UNKNOWN_ERROR', message: 'An unexpected error occurred.' };
-        throw new ApiError(errorDetails.message, errorDetails.code);
+    return response;
+  },
+  async (error: AxiosError<ApiResponse>) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // If 401 and not already retried and not refresh endpoint itself
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/refresh')
+    ) {
+      originalRequest._retry = true;
+      try {
+        const refreshToken = await tokens.getRefreshToken();
+        if (!refreshToken) {
+          await tokens.clearTokens();
+          return Promise.reject(error);
+        }
+
+        const refreshRes = await apiClient.post('/auth/refresh', { refreshToken });
+        const newAccess = refreshRes.data?.accessToken || refreshRes.data?.data?.accessToken;
+        const newRefresh = refreshRes.data?.refreshToken || refreshRes.data?.data?.refreshToken;
+
+        if (newAccess) {
+          await tokens.setAccessToken(newAccess);
+        }
+        if (newRefresh) {
+          await tokens.setRefreshToken(newRefresh);
+        }
+
+        if (originalRequest.headers && newAccess) {
+          originalRequest.headers.Authorization = `Bearer ${newAccess}`;
+        }
+        return apiClient(originalRequest);
+      } catch (refreshErr) {
+        await tokens.clearTokens();
+        return Promise.reject(refreshErr);
       }
     }
-    return response.data;
-  },
-  (error: AxiosError<ApiResponse>) => {
+
     if (error.response && error.response.data && typeof error.response.data === 'object') {
       const responseData = error.response.data;
       if (responseData.error) {
@@ -70,13 +99,43 @@ apiClient.interceptors.response.use(
 
 export const api = {
   get: <T = any>(url: string, params?: Record<string, any>): Promise<T> =>
-    apiClient.get(url, { params }) as unknown as Promise<T>,
+    apiClient.get(url, { params }).then((r) => {
+      const body = r.data;
+      if (body && typeof body === 'object' && 'success' in body) {
+        return body.data !== undefined ? body.data : body;
+      }
+      return body;
+    }),
   post: <T = any>(url: string, data?: any): Promise<T> =>
-    apiClient.post(url, data) as unknown as Promise<T>,
+    apiClient.post(url, data).then((r) => {
+      const body = r.data;
+      if (body && typeof body === 'object' && 'success' in body) {
+        return body.data !== undefined ? body.data : body;
+      }
+      return body;
+    }),
   put: <T = any>(url: string, data?: any): Promise<T> =>
-    apiClient.put(url, data) as unknown as Promise<T>,
+    apiClient.put(url, data).then((r) => {
+      const body = r.data;
+      if (body && typeof body === 'object' && 'success' in body) {
+        return body.data !== undefined ? body.data : body;
+      }
+      return body;
+    }),
   patch: <T = any>(url: string, data?: any): Promise<T> =>
-    apiClient.patch(url, data) as unknown as Promise<T>,
+    apiClient.patch(url, data).then((r) => {
+      const body = r.data;
+      if (body && typeof body === 'object' && 'success' in body) {
+        return body.data !== undefined ? body.data : body;
+      }
+      return body;
+    }),
   delete: <T = any>(url: string, data?: any): Promise<T> =>
-    apiClient.delete(url, { data }) as unknown as Promise<T>,
+    apiClient.delete(url, { data }).then((r) => {
+      const body = r.data;
+      if (body && typeof body === 'object' && 'success' in body) {
+        return body.data !== undefined ? body.data : body;
+      }
+      return body;
+    }),
 };

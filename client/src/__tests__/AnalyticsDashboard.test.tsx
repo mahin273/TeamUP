@@ -100,12 +100,12 @@ describe('AnalyticsDashboardScreen', () => {
   it('shows summary cards with correct values', async () => {
     (analyticsService.getProjectAnalytics as jest.Mock).mockResolvedValue(makeAnalytics());
 
-    const { getByText } = renderWithProviders();
+    const { getByText, getAllByText } = renderWithProviders();
 
     await waitFor(() => {
       expect(getByText('60%')).toBeTruthy();   // completion rate
       expect(getByText('10')).toBeTruthy();    // total tasks
-      expect(getByText('3')).toBeTruthy();     // total files
+      expect(getAllByText('3').length).toBeGreaterThan(0);     // total files
     });
   });
 

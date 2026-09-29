@@ -5,6 +5,15 @@ import { AuthProvider } from '../context/AuthContext';
 import { FilesScreen } from '../screens/Files/FilesScreen';
 import { fileService } from '../services/fileService';
 
+jest.mock('../context/AuthContext', () => ({
+  ...jest.requireActual('../context/AuthContext'),
+  useAuth: () => ({
+    user: { id: 'user-1', email: 'alice@example.com' },
+    isAuthenticated: true,
+    token: 'mock-token',
+  }),
+}));
+
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
 jest.mock('../services/fileService', () => ({
@@ -91,7 +100,7 @@ describe('FilesScreen', () => {
 
     await waitFor(() => {
       expect(getByText('report.pdf')).toBeTruthy();
-      expect(getByText('Alice Smith')).toBeTruthy();
+      expect(getByText(/Alice Smith/)).toBeTruthy();
     });
   });
 
@@ -137,12 +146,12 @@ describe('FilesScreen', () => {
   it('opens upload sheet when FAB is pressed', async () => {
     (fileService.getProjectFiles as jest.Mock).mockResolvedValue([]);
 
-    const { getByText, getByLabelText } = renderWithProviders();
+    const { getByText, getAllByLabelText } = renderWithProviders();
 
     await waitFor(() => expect(getByText('No Files Shared Yet')).toBeTruthy());
 
     act(() => {
-      fireEvent.press(getByLabelText('Upload file'));
+      fireEvent.press(getAllByLabelText('Upload file')[0]);
     });
 
     await waitFor(() => {

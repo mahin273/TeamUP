@@ -46,7 +46,7 @@ const CRITERIA: { key: keyof SubmitEvaluationInput & string; label: string; desc
   { key: 'communication',       label: 'Communication',         description: 'Clarity of updates, responsiveness, and team alignment' },
   { key: 'teamwork',            label: 'Teamwork',              description: 'Helpfulness, collaboration, and attitude toward others' },
   { key: 'reliability',         label: 'Reliability',           description: 'Meeting deadlines and following through on commitments' },
-  { key: 'overallContribution', label: 'Overall Contribution',  description: 'Net positive impact on the project's success' },
+  { key: 'overallContribution', label: 'Overall Contribution',  description: "Net positive impact on the project's success" },
 ];
 
 const SCORE_LABELS: Record<number, string> = {

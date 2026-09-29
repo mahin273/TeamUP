@@ -17,6 +17,8 @@ import { GitHubIcon } from '../../components/GitHubIcon';
 import { useAuth } from '../../context/AuthContext';
 import { api, ApiError } from '../../api/client';
 
+import * as apiAuth from '../../api/auth';
+
 export const LoginScreen = ({ navigation }: any) => {
   const { colors, typography, spacing, borderRadius } = useTheme();
   const { login } = useAuth();
@@ -83,16 +85,24 @@ export const LoginScreen = ({ navigation }: any) => {
 
   const handleLogin = async () => {
     if (!validate()) return;
+    if (loading) return;
 
     setLoading(true);
     setErrorMsg(null);
     try {
-      await login(email.trim(), password);
-    } catch (err) {
+      if (apiAuth.login) {
+        await apiAuth.login(email.trim(), password);
+      }
+      if (login) {
+        await login(email.trim(), password);
+      }
+    } catch (err: any) {
       if (err instanceof ApiError) {
         setErrorMsg(err.message || `Error (${err.code}): Failed to sign in.`);
+      } else if (err?.response?.status === 401) {
+        setErrorMsg('Invalid email or password.');
       } else {
-        setErrorMsg('Unable to connect to server. Please check your network.');
+        setErrorMsg(err?.message || 'Unable to connect to server. Please check your network.');
       }
     } finally {
       setLoading(false);
@@ -314,3 +324,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+export default LoginScreen;
