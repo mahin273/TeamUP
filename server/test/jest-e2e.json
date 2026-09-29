@@ -1,9 +1,9 @@
 {
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
+  "testRegex": ".*\\.(e2e-spec|ws-spec)\\.ts$",
+  "transform": { "^.+\\.(t|j)s$": "ts-jest" },
   "testEnvironment": "node",
-  "testRegex": ".e2e-spec.ts$",
-  "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
-  }
+  "globalSetup": "<rootDir>/setup/global-setup.ts",
+  "testTimeout": 30000
 }
