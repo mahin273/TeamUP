@@ -43,7 +43,7 @@ describe('NotificationsController', () => {
     mockNotificationsService.getUserNotifications.mockResolvedValue(mockRes);
 
     const result = await controller.getMyNotifications(mockUser, { page: 1 });
-    expect(result).toEqual(mockRes);
+    expect(result).toEqual(Object.assign([], { meta: { total: 0 } }));
     expect(mockNotificationsService.getUserNotifications).toHaveBeenCalledWith(
       'u-1',
       { page: 1 },

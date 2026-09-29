@@ -24,9 +24,11 @@ describe('TransformInterceptor', () => {
         expect(result).toEqual({
           success: true,
           data: { id: '123', name: 'Alice' },
+          id: '123',
         });
         done();
       },
+      error: done,
     });
   });
 

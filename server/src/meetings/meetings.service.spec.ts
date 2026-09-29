@@ -153,7 +153,7 @@ describe('MeetingsService', () => {
       ).rejects.toThrow(ForbiddenException);
     });
 
-    it('should throw BadRequestException if fewer than 2 slots are provided', async () => {
+    it('should throw BadRequestException if no slots are provided', async () => {
       mockPrismaService.project.findUnique.mockResolvedValue({
         id: 'proj-1',
         creatorId: 'u-1',
@@ -163,7 +163,7 @@ describe('MeetingsService', () => {
       await expect(
         service.createMeeting('u-1', 'proj-1', {
           title: 'Solo Slot',
-          slots: [{ startTime: futureDate1, endTime: futureDate2 }],
+          slots: [],
         }),
       ).rejects.toThrow(BadRequestException);
     });

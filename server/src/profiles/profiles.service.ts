@@ -137,6 +137,15 @@ export class ProfilesService {
       skillId = skill.id;
     }
 
+    if (skillId) {
+      const existing = await this.prisma.skill.findUnique({
+        where: { id: skillId },
+      });
+      if (!existing) {
+        throw new NotFoundException('Skill not found');
+      }
+    }
+
     if (!skillId) {
       throw new BadRequestException('skillId or skillName is required');
     }

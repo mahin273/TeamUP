@@ -81,17 +81,19 @@ describe('ProfilesService', () => {
 
   describe('getProfileById', () => {
     it('should return profile by id or userId', async () => {
-      const mockProfile = { id: 'prof-1', fullName: 'Mahin' };
+      const validId = '123e4567-e89b-12d3-a456-426614174000';
+      const mockProfile = { id: validId, fullName: 'Mahin' };
       mockPrismaService.profile.findFirst.mockResolvedValue(mockProfile);
 
-      const result = await service.getProfileById('prof-1');
+      const result = await service.getProfileById(validId);
       expect(result).toEqual(mockProfile);
     });
 
     it('should throw NotFoundException if not found', async () => {
+      const validId = '123e4567-e89b-12d3-a456-426614174001';
       mockPrismaService.profile.findFirst.mockResolvedValue(null);
 
-      await expect(service.getProfileById('none')).rejects.toThrow(
+      await expect(service.getProfileById(validId)).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -141,6 +143,7 @@ describe('ProfilesService', () => {
     });
 
     it('should associate skill with profile and return join record', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({ id: 'p-1' });
       mockPrismaService.skill.findUnique.mockResolvedValue({
         id: 's-1',
         name: 'React',

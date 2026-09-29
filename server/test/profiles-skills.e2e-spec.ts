@@ -79,7 +79,10 @@ describe('Profiles & Skills (e2e)', () => {
         return Promise.resolve({ ...p, user, skills: userSkills });
       }),
       create: jest.fn(({ data }: any) => {
-        const p = { id: `prof-${mockProfiles.length + 1}`, ...data };
+        const p = {
+          id: `11111111-1111-4111-8111-11111111111${mockProfiles.length + 1}`,
+          ...data,
+        };
         mockProfiles.push(p);
         return Promise.resolve(p);
       }),
@@ -88,7 +91,10 @@ describe('Profiles & Skills (e2e)', () => {
         if (p) {
           Object.assign(p, update);
         } else {
-          p = { id: `prof-${mockProfiles.length + 1}`, ...create };
+          p = {
+            id: `11111111-1111-4111-8111-11111111111${mockProfiles.length + 1}`,
+            ...create,
+          };
           mockProfiles.push(p);
         }
         const userSkills = mockProfileSkills

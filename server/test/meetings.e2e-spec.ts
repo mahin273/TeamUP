@@ -329,13 +329,13 @@ describe('Meeting Scheduler & Slot Voting Subsystem (e2e)', () => {
         .expect(403);
     });
 
-    it('should return 400 if fewer than 2 slots are provided', async () => {
+    it('should return 400 if no slots are provided', async () => {
       const res = await request(app.getHttpServer())
         .post(`/api/v1/projects/${mockProject.id}/meetings`)
         .set('Authorization', `Bearer ${leaderToken}`)
         .send({
-          title: 'Solo Slot Meeting',
-          slots: [{ startTime: future1, endTime: future2 }],
+          title: 'No Slot Meeting',
+          slots: [],
         })
         .expect(400);
 

@@ -80,7 +80,7 @@ describe('ProfilesController', () => {
     };
     mockProfilesService.addSkillToProfile.mockResolvedValue({ id: 'ps-1' });
 
-    const result = await controller.addSkill(user, dto);
+    const result = await controller.addSkill(user, undefined, dto);
     expect(result).toEqual({ id: 'ps-1' });
     expect(mockProfilesService.addSkillToProfile).toHaveBeenCalledWith(
       'u-1',

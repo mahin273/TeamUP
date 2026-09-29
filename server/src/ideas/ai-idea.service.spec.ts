@@ -3,6 +3,7 @@ import { ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ExperienceLevel } from '@prisma/client';
 import { AiIdeaService } from './ai-idea.service';
+import { LlmClient } from './llm.client';
 import { PrismaService } from '../prisma/prisma.service';
 
 describe('AiIdeaService', () => {
@@ -25,6 +26,10 @@ describe('AiIdeaService', () => {
     }),
   };
 
+  const mockLlmClient = {
+    complete: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -33,6 +38,7 @@ describe('AiIdeaService', () => {
         AiIdeaService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: LlmClient, useValue: mockLlmClient },
       ],
     }).compile();
 
@@ -200,6 +206,7 @@ describe('AiIdeaService', () => {
         }),
       } as any);
 
+      mockLlmClient.complete.mockResolvedValue(JSON.stringify(mockGeminiJson));
       mockPrismaService.cachedIdeaQuery.findUnique.mockResolvedValue(null);
       mockPrismaService.cachedIdeaQuery.upsert.mockResolvedValue({});
 
@@ -213,24 +220,14 @@ describe('AiIdeaService', () => {
       expect(result.domain).toBe('Robotics');
       expect(result.features).toContain('Autonomous navigation');
       expect(result.isCached).toBe(false);
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('gemini-3.6-flash:generateContent'),
-        expect.objectContaining({ method: 'POST' }),
-      );
+      expect(mockLlmClient.complete).toHaveBeenCalled();
     });
 
     it('should call custom OpenAI-compatible endpoint when LLM_API_URL is configured', async () => {
-      mockConfigService.get.mockImplementation((key: string) => {
-        if (key === 'LLM_API_KEY') return 'sk-test-openai-key';
-        if (key === 'LLM_API_URL')
-          return 'https://api.openai.com/v1/chat/completions';
-        if (key === 'LLM_MODEL') return 'gpt-4o-mini';
-        return null;
-      });
-
       const mockOpenAiJson = {
         title: 'OpenAI Project',
         description: 'OpenAI description',
+        problem: 'Solves education gap',
         domain: 'Education',
         techStack: ['TypeScript'],
         difficulty: ExperienceLevel.BEGINNER,
@@ -238,19 +235,7 @@ describe('AiIdeaService', () => {
         roadmap: ['Phase 1'],
       };
 
-      global.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          choices: [
-            {
-              message: {
-                content: JSON.stringify(mockOpenAiJson),
-              },
-            },
-          ],
-        }),
-      } as any);
-
+      mockLlmClient.complete.mockResolvedValue(JSON.stringify(mockOpenAiJson));
       mockPrismaService.cachedIdeaQuery.findUnique.mockResolvedValue(null);
       mockPrismaService.cachedIdeaQuery.upsert.mockResolvedValue({});
 
@@ -261,50 +246,34 @@ describe('AiIdeaService', () => {
       });
 
       expect(result.title).toBe('OpenAI Project');
-      expect(global.fetch).toHaveBeenCalledWith(
-        'https://api.openai.com/v1/chat/completions',
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer sk-test-openai-key',
-          }),
+      expect(mockLlmClient.complete).toHaveBeenCalled();
+    });
+
+    it('should throw ServiceUnavailableException when simulateFailure is true', async () => {
+      await expect(
+        service.generateIdea({
+          domain: 'Fintech',
+          techStack: ['Node.js'],
+          simulateFailure: true,
         }),
-      );
+      ).rejects.toThrow(ServiceUnavailableException);
     });
 
-    it('should throw ServiceUnavailableException when LLM response is not ok', async () => {
-      mockConfigService.get.mockImplementation((key: string) => {
-        if (key === 'LLM_API_KEY') return 'actual_key';
-        return null;
+    it('should fallback procedurally when LLM completes with an error', async () => {
+      mockLlmClient.complete.mockRejectedValue(
+        new Error('LLM rate limit reached'),
+      );
+      mockPrismaService.cachedIdeaQuery.findUnique.mockResolvedValue(null);
+      mockPrismaService.cachedIdeaQuery.upsert.mockResolvedValue({});
+
+      const result = await service.generateIdea({
+        domain: 'Fintech',
+        techStack: ['Node.js'],
       });
 
-      global.fetch = jest.fn().mockResolvedValue({
-        ok: false,
-        status: 503,
-        text: async () => 'Service overloaded',
-      } as any);
-
-      mockPrismaService.cachedIdeaQuery.findUnique.mockResolvedValue(null);
-
-      await expect(service.generateIdea({ domain: 'Fintech' })).rejects.toThrow(
-        ServiceUnavailableException,
-      );
-    });
-
-    it('should throw ServiceUnavailableException when fetch throws a network error', async () => {
-      mockConfigService.get.mockImplementation((key: string) => {
-        if (key === 'LLM_API_KEY') return 'actual_key';
-        return null;
-      });
-
-      global.fetch = jest
-        .fn()
-        .mockRejectedValue(new Error('DNS resolution failed'));
-
-      mockPrismaService.cachedIdeaQuery.findUnique.mockResolvedValue(null);
-
-      await expect(service.generateIdea({ domain: 'Fintech' })).rejects.toThrow(
-        ServiceUnavailableException,
-      );
+      expect(result.title).toBeTruthy();
+      expect(result.domain).toBe('Fintech');
+      expect(result.isCached).toBe(false);
     });
   });
 
