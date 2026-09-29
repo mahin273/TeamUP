@@ -213,9 +213,45 @@ const meetingProxy = new Proxy((prisma as any).meeting, {
   },
 });
 
+const peerEvaluationProxy = new Proxy((prisma as any).peerEvaluation, {
+  get(target, prop, receiver) {
+    const orig = Reflect.get(target, prop, receiver);
+    if (
+      [
+        'findUnique',
+        'findFirst',
+        'findMany',
+        'findUniqueOrThrow',
+        'findFirstOrThrow',
+        'create',
+        'update',
+      ].includes(String(prop))
+    ) {
+      return async (...args: any[]) => {
+        const res = await orig.apply(target, args);
+        const mapEval = (e: any) => {
+          if (e && typeof e === 'object' && !('comment' in e)) {
+            Object.defineProperty(e, 'comment', {
+              get() {
+                return e.feedback;
+              },
+              enumerable: true,
+            });
+          }
+          return e;
+        };
+        if (Array.isArray(res)) return res.map(mapEval);
+        return mapEval(res);
+      };
+    }
+    return orig;
+  },
+});
+
 Object.defineProperty(prisma, 'skillTag', { get: () => skillTagProxy });
 Object.defineProperty(prisma, 'fileAsset', { get: () => (prisma as any).projectFile });
-Object.defineProperty(prisma, 'evaluation', { get: () => (prisma as any).peerEvaluation });
+Object.defineProperty(prisma, 'evaluation', { get: () => peerEvaluationProxy });
+Object.defineProperty(prisma, 'peerEvaluation', { get: () => peerEvaluationProxy });
 Object.defineProperty(prisma, 'user', { get: () => userProxy });
 Object.defineProperty(prisma, 'projectMember', { get: () => projectMemberProxy });
 Object.defineProperty(prisma, 'message', { get: () => messageProxy });

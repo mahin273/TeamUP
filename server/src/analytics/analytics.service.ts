@@ -13,6 +13,21 @@ export class AnalyticsService {
     projectId: string,
     userId: string,
   ): Promise<void> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { creatorId: true },
+    });
+
+    if (!project) {
+      throw new ForbiddenException(
+        'Project not found or you are not a project member',
+      );
+    }
+
+    if (project.creatorId === userId) {
+      return;
+    }
+
     const membership = await this.prisma.projectMember.findFirst({
       where: {
         projectId,

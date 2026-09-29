@@ -20,6 +20,19 @@ export class EvaluationsService {
     projectId: string,
     userId: string,
   ): Promise<void> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { creatorId: true },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID '${projectId}' not found`);
+    }
+
+    if (project.creatorId === userId) {
+      return;
+    }
+
     const membership = await this.prisma.projectMember.findFirst({
       where: {
         projectId,
@@ -54,6 +67,34 @@ export class EvaluationsService {
     // Verify evaluatee is a member
     await this.verifyProjectMembership(projectId, dto.evaluateeId);
 
+    if (
+      dto.score === undefined &&
+      (dto.contributionScore === undefined ||
+        dto.communicationScore === undefined ||
+        dto.teamworkScore === undefined)
+    ) {
+      throw new BadRequestException(
+        'All three evaluation scores (contributionScore, communicationScore, teamworkScore) or score are required',
+      );
+    }
+
+    const effectiveScore =
+      dto.score ??
+      (dto.contributionScore !== undefined &&
+      dto.communicationScore !== undefined &&
+      dto.teamworkScore !== undefined
+        ? Number(
+            (
+              (dto.contributionScore +
+                dto.communicationScore +
+                dto.teamworkScore) /
+              3
+            ).toFixed(2),
+          )
+        : 5);
+
+    const feedback = dto.comment ?? dto.feedback ?? null;
+
     // Check if evaluation already exists
     const existingEvaluation = await this.prisma.peerEvaluation.findUnique({
       where: {
@@ -77,8 +118,8 @@ export class EvaluationsService {
         projectId,
         evaluatorId,
         evaluateeId: dto.evaluateeId,
-        score: dto.score,
-        feedback: dto.feedback,
+        score: effectiveScore,
+        feedback,
       },
       include: {
         evaluator: {
