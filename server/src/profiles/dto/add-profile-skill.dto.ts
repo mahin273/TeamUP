@@ -1,6 +1,5 @@
 import {
   IsString,
-  IsNotEmpty,
   IsOptional,
   IsEnum,
   IsNumber,
@@ -9,9 +8,13 @@ import {
 import { ExperienceLevel } from '@prisma/client';
 
 export class AddProfileSkillDto {
+  @IsOptional()
   @IsString({ message: 'skillId must be a string' })
-  @IsNotEmpty({ message: 'skillId is required' })
-  skillId: string;
+  skillId?: string;
+
+  @IsOptional()
+  @IsString({ message: 'skillName must be a string' })
+  skillName?: string;
 
   @IsOptional()
   @IsNumber({}, { message: 'yearsOfExperience must be a number' })
@@ -23,4 +26,10 @@ export class AddProfileSkillDto {
     message: 'proficiencyLevel must be BEGINNER, INTERMEDIATE, or ADVANCED',
   })
   proficiencyLevel?: ExperienceLevel;
+
+  @IsOptional()
+  @IsEnum(ExperienceLevel, {
+    message: 'proficiency must be BEGINNER, INTERMEDIATE, or ADVANCED',
+  })
+  proficiency?: ExperienceLevel;
 }

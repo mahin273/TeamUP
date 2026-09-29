@@ -10,6 +10,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ProfilesService } from './profiles.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -38,13 +39,20 @@ export class ProfilesController {
     return this.profilesService.upsertProfile(user.userId, user.email, dto);
   }
 
-  @Post('me/skills')
+  @Post(['me/skills', ':id/skills'])
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   async addSkill(
     @CurrentUser() user: AuthenticatedUser,
+    @Param('id') targetId: string | undefined,
     @Body() dto: AddProfileSkillDto,
   ) {
+    if (targetId && targetId !== 'me') {
+      const profile = await this.profilesService.getProfileById(targetId);
+      if (profile.userId !== user.userId) {
+        throw new ForbiddenException("Cannot edit another user's skills");
+      }
+    }
     return this.profilesService.addSkillToProfile(user.userId, user.email, dto);
   }
 

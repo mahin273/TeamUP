@@ -1,3 +1,5 @@
+import { NotFoundException } from '@nestjs/common';
+
 export const githubMock = {
   mode: 'ok' as 'ok' | 'notfound' | 'ratelimit' | 'error' | 'timeout',
   async getStatsForProfile(profileIdOrUserId: string) {
@@ -9,7 +11,7 @@ export const githubMock = {
   async getStats(username: string) {
     switch (this.mode) {
       case 'notfound':
-        throw Object.assign(new Error('Not Found'), { status: 404 });
+        throw new NotFoundException(`GitHub user '${username}' not found`);
       case 'ratelimit':
         return {
           username,
@@ -35,9 +37,17 @@ export const githubMock = {
           warning: 'GitHub API temporarily unavailable.',
         };
       case 'timeout':
-        return new Promise((_, rej) =>
-          setTimeout(() => rej(new Error('timeout')), 50),
-        );
+        return {
+          username,
+          connected: true,
+          publicRepos: 0,
+          followers: 0,
+          contributionsThisYear: 0,
+          totalStars: 0,
+          topLanguages: [],
+          cached: true,
+          warning: 'GitHub API timeout.',
+        };
       default:
         return {
           username,

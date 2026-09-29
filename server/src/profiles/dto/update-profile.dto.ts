@@ -4,8 +4,33 @@ import {
   IsBoolean,
   IsEnum,
   MinLength,
+  IsUrl,
+  Validate,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
 } from 'class-validator';
 import { ExperienceLevel } from '@prisma/client';
+
+@ValidatorConstraint({ name: 'isValidSemester', async: false })
+export class IsValidSemesterConstraint implements ValidatorConstraintInterface {
+  validate(value: any) {
+    if (value === undefined || value === null) return true;
+    if (typeof value === 'number') {
+      return Number.isInteger(value) && value >= 1 && value <= 8;
+    }
+    if (typeof value === 'string') {
+      const num = Number(value.trim());
+      if (!isNaN(num) && Number.isInteger(num)) {
+        return num >= 1 && num <= 8;
+      }
+      return false;
+    }
+    return false;
+  }
+  defaultMessage() {
+    return 'Semester must be an integer between 1 and 8';
+  }
+}
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -26,8 +51,8 @@ export class UpdateProfileDto {
   department?: string;
 
   @IsOptional()
-  @IsString({ message: 'semester must be a string' })
-  semester?: string;
+  @Validate(IsValidSemesterConstraint)
+  semester?: any;
 
   @IsOptional()
   @IsBoolean({ message: 'availability must be a boolean' })
@@ -44,6 +69,9 @@ export class UpdateProfileDto {
   githubUsername?: string;
 
   @IsOptional()
-  @IsString({ message: 'portfolioUrl must be a string' })
+  @IsUrl(
+    { require_protocol: true, protocols: ['http', 'https'] },
+    { message: 'portfolioUrl must be a valid HTTP or HTTPS URL' },
+  )
   portfolioUrl?: string;
 }

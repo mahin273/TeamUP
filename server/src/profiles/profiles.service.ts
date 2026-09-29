@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { AddProfileSkillDto } from './dto/add-profile-skill.dto';
@@ -35,6 +35,12 @@ export class ProfilesService {
   }
 
   async getProfileById(id: string) {
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      throw new BadRequestException('Invalid user or profile ID format');
+    }
+
     const profile = await this.prisma.profile.findFirst({
       where: {
         OR: [{ id }, { userId: id }],
@@ -43,7 +49,6 @@ export class ProfilesService {
         user: {
           select: {
             id: true,
-            email: true,
             role: true,
           },
         },
@@ -67,6 +72,8 @@ export class ProfilesService {
       where: { userId },
     });
     const fullName = dto.fullName ?? existing?.fullName ?? email.split('@')[0];
+    const semesterStr =
+      dto.semester !== undefined ? String(dto.semester) : undefined;
 
     return this.prisma.profile.upsert({
       where: { userId },
@@ -76,7 +83,7 @@ export class ProfilesService {
         bio: dto.bio,
         avatarUrl: dto.avatarUrl,
         department: dto.department,
-        semester: dto.semester,
+        semester: semesterStr,
         availability: dto.availability ?? true,
         experienceLevel: dto.experienceLevel ?? ExperienceLevel.BEGINNER,
         githubUsername: dto.githubUsername,
@@ -87,7 +94,7 @@ export class ProfilesService {
         ...(dto.bio !== undefined && { bio: dto.bio }),
         ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
         ...(dto.department !== undefined && { department: dto.department }),
-        ...(dto.semester !== undefined && { semester: dto.semester }),
+        ...(semesterStr !== undefined && { semester: semesterStr }),
         ...(dto.availability !== undefined && {
           availability: dto.availability,
         }),
@@ -116,12 +123,22 @@ export class ProfilesService {
     email: string,
     dto: AddProfileSkillDto,
   ) {
-    const skill = await this.prisma.skill.findUnique({
-      where: { id: dto.skillId },
-    });
+    let skillId = dto.skillId;
+    if (!skillId && dto.skillName) {
+      const normalizedName = dto.skillName.trim();
+      let skill = await this.prisma.skill.findFirst({
+        where: { name: { equals: normalizedName, mode: 'insensitive' } },
+      });
+      if (!skill) {
+        skill = await this.prisma.skill.create({
+          data: { name: normalizedName },
+        });
+      }
+      skillId = skill.id;
+    }
 
-    if (!skill) {
-      throw new NotFoundException('Skill not found');
+    if (!skillId) {
+      throw new BadRequestException('skillId or skillName is required');
     }
 
     let profile = await this.prisma.profile.findUnique({
@@ -137,26 +154,27 @@ export class ProfilesService {
       });
     }
 
+    const proficiencyLevel =
+      dto.proficiencyLevel ?? dto.proficiency ?? ExperienceLevel.BEGINNER;
+
     return this.prisma.profileSkill.upsert({
       where: {
         profileId_skillId: {
           profileId: profile.id,
-          skillId: dto.skillId,
+          skillId,
         },
       },
       create: {
         profileId: profile.id,
-        skillId: dto.skillId,
+        skillId,
         yearsOfExperience: dto.yearsOfExperience ?? 0,
-        proficiencyLevel: dto.proficiencyLevel ?? ExperienceLevel.BEGINNER,
+        proficiencyLevel,
       },
       update: {
         ...(dto.yearsOfExperience !== undefined && {
           yearsOfExperience: dto.yearsOfExperience,
         }),
-        ...(dto.proficiencyLevel !== undefined && {
-          proficiencyLevel: dto.proficiencyLevel,
-        }),
+        proficiencyLevel,
       },
       include: {
         skill: true,
