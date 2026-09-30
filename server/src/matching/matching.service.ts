@@ -4,7 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ExperienceLevel, MemberStatus } from '@prisma/client';
+import { ExperienceLevel, MemberStatus, ProjectRole } from '@prisma/client';
 import { MatchingCandidate } from './interfaces/matching-candidate.interface';
 
 const LEVEL_RANKS: Record<ExperienceLevel, number> = {
@@ -49,6 +49,7 @@ export class MatchingService {
           select: {
             userId: true,
             status: true,
+            role: true,
           },
         },
       },
@@ -97,9 +98,18 @@ export class MatchingService {
       targetProject.creatorId &&
       targetProject.creatorId !== requesterUserId
     ) {
-      throw new ForbiddenException(
-        'Only the project owner can view recommendations',
+      const isLeader = targetProject.members?.some(
+        (m: any) =>
+          m.userId === requesterUserId &&
+          m.role === ProjectRole.LEADER &&
+          m.status === MemberStatus.ACCEPTED,
       );
+
+      if (!isLeader) {
+        throw new ForbiddenException(
+          'Only the project owner can view recommendations',
+        );
+      }
     }
 
     // 2. Build exclusion list (project creator + accepted active team members + requester)

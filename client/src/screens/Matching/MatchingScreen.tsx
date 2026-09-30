@@ -91,8 +91,34 @@ export const MatchingScreen: React.FC = () => {
 
       setScreenState(candidateList.length === 0 ? 'empty' : 'populated');
     } catch (err: any) {
+      const isForbidden =
+        err?.code === 'FORBIDDEN' ||
+        err?.status === 403 ||
+        err?.statusCode === 403 ||
+        (typeof err?.message === 'string' &&
+          (err.message.toLowerCase().includes('owner') ||
+            err.message.toLowerCase().includes('forbidden')));
+
+      if (isForbidden && trimmedTarget.startsWith('project-')) {
+        // Graceful automatic recovery: fall back to skill-based matching
+        const fallbackSkill = 'React Native';
+        setActiveTarget(fallbackSkill);
+        setSearchQuery(fallbackSkill);
+        try {
+          const fallbackData = await api.get<MatchingCandidate[]>(
+            `/projects/${encodeURIComponent(fallbackSkill)}/recommendations`
+          );
+          const candidateList = Array.isArray(fallbackData) ? fallbackData : [];
+          setCandidates(candidateList);
+          setScreenState(candidateList.length === 0 ? 'empty' : 'populated');
+          return;
+        } catch {
+          // If fallback fails, fall through to error handling
+        }
+      }
+
       const msg = err?.message || 'Failed to fetch teammate recommendations.';
-      const code = err?.code;
+      const code = err?.code || (isForbidden ? 'FORBIDDEN' : undefined);
       setErrorMessage(msg);
       setErrorCode(code);
       setScreenState('error');
@@ -130,8 +156,44 @@ export const MatchingScreen: React.FC = () => {
         setScreenState(candidateList.length === 0 ? 'empty' : 'populated');
       } catch (err: any) {
         if (!isMounted) return;
+
+        const isForbidden =
+          err?.code === 'FORBIDDEN' ||
+          err?.status === 403 ||
+          err?.statusCode === 403 ||
+          (typeof err?.message === 'string' &&
+            (err.message.toLowerCase().includes('owner') ||
+              err.message.toLowerCase().includes('forbidden')));
+
+        if (isForbidden && trimmedTarget.startsWith('project-')) {
+          // Graceful fallback to skill-based matching for non-owners
+          const fallbackSkill = 'React Native';
+          setActiveTarget(fallbackSkill);
+          setSearchQuery(fallbackSkill);
+          try {
+            const fallbackData = await api.get<MatchingCandidate[]>(
+              `/projects/${encodeURIComponent(fallbackSkill)}/recommendations`
+            );
+            if (!isMounted) return;
+            const candidateList = Array.isArray(fallbackData) ? fallbackData : [];
+            setCandidates(candidateList);
+            const initialStatuses: Record<string, InvitationStatus> = {};
+            candidateList.forEach((candidate) => {
+              const uid = candidate.userId || candidate.id;
+              if (candidate.invited) {
+                initialStatuses[uid] = 'invited';
+              }
+            });
+            setInviteStatuses((prev) => ({ ...initialStatuses, ...prev }));
+            setScreenState(candidateList.length === 0 ? 'empty' : 'populated');
+            return;
+          } catch {
+            // fall through to error state
+          }
+        }
+
         const msg = err?.message || 'Failed to fetch teammate recommendations.';
-        const code = err?.code;
+        const code = err?.code || (isForbidden ? 'FORBIDDEN' : undefined);
         setErrorMessage(msg);
         setErrorCode(code);
         setScreenState('error');
@@ -245,16 +307,15 @@ export const MatchingScreen: React.FC = () => {
               },
             ]}
             onPress={() => {
-              // Cycle through available mock targets
-              if (activeTarget === 'project-1') {
-                setActiveTarget('Campus Event Platform');
-              } else {
-                setActiveTarget('project-1');
-              }
+              const targets = ['React Native', 'TypeScript', 'Node.js', 'Python', 'UI/UX'];
+              const idx = targets.indexOf(activeTarget);
+              const next = idx === -1 || idx === targets.length - 1 ? targets[0] : targets[idx + 1];
+              setActiveTarget(next);
+              setSearchQuery(next);
             }}
           >
             <Text style={[styles.projectSelectorText, { color: colors.onSurface }]}>
-              {activeTarget === 'project-1' ? 'Campus Event Platform ▾' : `${activeTarget} ▾`}
+              {activeTarget.startsWith('project-') ? `Project (${activeTarget})` : `Skill: ${activeTarget}`}
             </Text>
           </TouchableOpacity>
 
@@ -323,9 +384,19 @@ export const MatchingScreen: React.FC = () => {
           emptySubtitle={`We couldn't find candidates matching "${activeTarget}". Try searching for another skill like React Native, Python, or TypeScript.`}
           emptyActionLabel="Refresh Candidates"
           onEmptyAction={() => loadRecommendations(activeTarget)}
-          errorMessage={errorMessage}
+          errorMessage={
+            errorCode === 'FORBIDDEN'
+              ? 'Only the project owner can view recommendations for this project. Search by skill instead.'
+              : errorMessage
+          }
           errorCode={errorCode}
-          onRetry={() => loadRecommendations(activeTarget)}
+          onRetry={() => {
+            if (errorCode === 'FORBIDDEN') {
+              handleSelectSkill('React Native');
+            } else {
+              loadRecommendations(activeTarget);
+            }
+          }}
         >
           <View style={{ marginTop: spacing.md }}>
             <View style={styles.sectionHeaderRow}>
