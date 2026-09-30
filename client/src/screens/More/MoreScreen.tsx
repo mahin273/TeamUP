@@ -7,6 +7,18 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import {
+  User,
+  Calendar,
+  Bell,
+  Bookmark,
+  Search,
+  Settings,
+  Sun,
+  Moon,
+  ChevronRight,
+  LucideIcon,
+} from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { AppHeader } from '../../components/AppHeader';
@@ -17,7 +29,7 @@ interface MenuItem {
   id: string;
   title: string;
   subtitle: string;
-  icon: string;
+  icon: LucideIcon;
   route: string;
   badge?: string;
 }
@@ -32,42 +44,42 @@ export const MoreScreen: React.FC = () => {
       id: 'profile',
       title: 'Profile',
       subtitle: 'View and edit your skills & GitHub sync',
-      icon: '👤',
+      icon: User,
       route: 'Profile',
     },
     {
       id: 'calendar',
       title: 'Calendar & Meetings',
       subtitle: 'Standups, deadlines & team schedule',
-      icon: '📅',
+      icon: Calendar,
       route: 'Scheduler',
     },
     {
       id: 'notifications',
       title: 'Notifications',
       subtitle: 'Invitations, applications & updates',
-      icon: '🔔',
+      icon: Bell,
       route: 'Notifications',
     },
     {
       id: 'bookmarks',
       title: 'Bookmarks',
       subtitle: 'Saved projects and references',
-      icon: '🔖',
+      icon: Bookmark,
       route: 'Bookmarks',
     },
     {
       id: 'search',
       title: 'Global Search',
       subtitle: 'Find projects, classmates & skills',
-      icon: '🔍',
+      icon: Search,
       route: 'Search',
     },
     {
       id: 'settings',
       title: 'Settings & Theme',
       subtitle: isDark ? 'Dark theme active' : 'Light theme active',
-      icon: '⚙️',
+      icon: Settings,
       route: 'Settings',
     },
   ];
@@ -79,7 +91,11 @@ export const MoreScreen: React.FC = () => {
         subtitle="Account & Utilities"
         actions={[
           {
-            icon: <Text style={{ fontSize: 18 }}>{isDark ? '☀️' : '🌙'}</Text>,
+            icon: isDark ? (
+              <Sun size={20} color={colors.onSurface} />
+            ) : (
+              <Moon size={20} color={colors.onSurface} />
+            ),
             onPress: toggleTheme,
             accessibilityLabel: 'Toggle theme',
           },
@@ -136,7 +152,7 @@ export const MoreScreen: React.FC = () => {
               </View>
             </View>
 
-            <Text style={[styles.chevron, { color: colors.textMuted }]}>›</Text>
+            <ChevronRight size={20} color={colors.textMuted} />
           </View>
         </Card>
 
@@ -154,62 +170,70 @@ export const MoreScreen: React.FC = () => {
           QUICK ACCESS
         </Text>
 
-        {menuItems.map((item) => (
-          <TouchableOpacity
-            key={item.id}
-            accessibilityRole="button"
-            activeOpacity={0.7}
-            style={[
-              styles.menuCard,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                borderRadius: borderRadius.md,
-              },
-            ]}
-            onPress={() => navigation.navigate(item.route)}
-          >
-            <View style={styles.menuRow}>
-              <View
-                style={[
-                  styles.iconContainer,
-                  { backgroundColor: colors.surfaceMuted, borderRadius: borderRadius.sm },
-                ]}
-              >
-                <Text style={{ fontSize: 20 }}>{item.icon}</Text>
-              </View>
-
-              <View style={styles.menuTextContainer}>
-                <Text
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <TouchableOpacity
+              key={item.id}
+              accessibilityRole="button"
+              activeOpacity={0.7}
+              style={[
+                styles.menuCard,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  borderRadius: borderRadius.md,
+                },
+              ]}
+              onPress={() => navigation.navigate(item.route)}
+            >
+              <View style={styles.menuRow}>
+                <View
                   style={[
-                    styles.menuTitle,
+                    styles.iconContainer,
                     {
-                      color: colors.text,
-                      fontSize: typography.body.fontSize,
-                      fontWeight: '600',
+                      backgroundColor: colors.surfaceMuted,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                      borderRadius: borderRadius.sm,
                     },
                   ]}
                 >
-                  {item.title}
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.menuSubtitle,
-                    {
-                      color: colors.textMuted,
-                      fontSize: typography.bodySmall.fontSize,
-                    },
-                  ]}
-                >
-                  {item.subtitle}
-                </Text>
-              </View>
+                  <Icon size={18} color={colors.primary} />
+                </View>
 
-              <Text style={[styles.chevron, { color: colors.textMuted }]}>›</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+                <View style={styles.menuTextContainer}>
+                  <Text
+                    style={[
+                      styles.menuTitle,
+                      {
+                        color: colors.text,
+                        fontSize: typography.body.fontSize,
+                        fontWeight: '600',
+                      },
+                    ]}
+                  >
+                    {item.title}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.menuSubtitle,
+                      {
+                        color: colors.textMuted,
+                        fontSize: typography.bodySmall.fontSize,
+                      },
+                    ]}
+                  >
+                    {item.subtitle}
+                  </Text>
+                </View>
+
+                <ChevronRight size={18} color={colors.textMuted} />
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -255,11 +279,6 @@ const styles = StyleSheet.create({
   badgeRow: {
     flexDirection: 'row',
     marginTop: 6,
-  },
-  chevron: {
-    fontSize: 24,
-    fontWeight: '300',
-    paddingHorizontal: 4,
   },
   sectionHeading: {
     fontWeight: '700',
