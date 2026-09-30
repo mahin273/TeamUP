@@ -23,7 +23,10 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  async loginWithGithub(code: string, redirectUri?: string): Promise<AuthResponse> {
+  async loginWithGithub(
+    code: string,
+    redirectUri?: string,
+  ): Promise<AuthResponse> {
     const clientId = this.configService.get<string>('GITHUB_CLIENT_ID');
     const clientSecret = this.configService.get<string>('GITHUB_CLIENT_SECRET');
 
@@ -53,12 +56,17 @@ export class AuthService {
         body: JSON.stringify(payload),
       });
     } catch (err: unknown) {
-      throw new BadRequestException('Unable to communicate with GitHub OAuth service');
+      throw new BadRequestException(
+        'Unable to communicate with GitHub OAuth service',
+      );
     }
 
     const tokenData = await tokenRes.json();
     if (tokenData.error || !tokenData.access_token) {
-      throw new BadRequestException(tokenData.error_description || 'Invalid or expired GitHub authorization code');
+      throw new BadRequestException(
+        tokenData.error_description ||
+          'Invalid or expired GitHub authorization code',
+      );
     }
 
     const accessToken = tokenData.access_token;
@@ -85,22 +93,25 @@ export class AuthService {
     const githubUsername = ghUser.login;
     const avatarUrl = ghUser.avatar_url;
     // GitHub API might not return email if it's private, fallback to a local generated email
-    const email = ghUser.email || `${githubUsername}@github.local`; 
+    const email = ghUser.email || `${githubUsername}@github.local`;
 
     // 3. Find or create user
     let user = await this.prisma.user.findFirst({
       where: {
         OR: [
           { email: email.toLowerCase() },
-          { profile: { githubUsername: githubUsername } }
-        ]
+          { profile: { githubUsername: githubUsername } },
+        ],
       },
-      include: { profile: true }
+      include: { profile: true },
     });
 
     if (!user) {
       // Create a new user
-      const dummyPassword = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10);
+      const dummyPassword = await bcrypt.hash(
+        crypto.randomBytes(16).toString('hex'),
+        10,
+      );
       user = await this.prisma.user.create({
         data: {
           email: email.toLowerCase(),
@@ -110,10 +121,10 @@ export class AuthService {
               fullName: githubUsername,
               githubUsername: githubUsername,
               avatarUrl: avatarUrl,
-            }
-          }
+            },
+          },
         },
-        include: { profile: true }
+        include: { profile: true },
       });
     } else {
       // Update existing user with github username if missing
@@ -123,7 +134,7 @@ export class AuthService {
           data: {
             githubUsername,
             ...(avatarUrl && !user.profile?.avatarUrl ? { avatarUrl } : {}),
-          }
+          },
         });
       }
     }

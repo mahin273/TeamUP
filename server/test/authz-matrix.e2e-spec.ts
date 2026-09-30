@@ -7,12 +7,7 @@ import { projectWithTeam, addMember, createTask } from './helpers/factories';
 import { R } from './helpers/routes';
 
 type Actor =
-  | 'owner'
-  | 'member'
-  | 'pending'
-  | 'rejected'
-  | 'stranger'
-  | 'anonymous';
+  'owner' | 'member' | 'pending' | 'rejected' | 'stranger' | 'anonymous';
 const ALLOW: Actor[] = ['owner', 'member'];
 const DENY_403: Actor[] = ['pending', 'rejected', 'stranger'];
 

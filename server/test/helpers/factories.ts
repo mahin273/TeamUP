@@ -24,7 +24,11 @@ export async function createProject(
   overrides: Record<string, any> = {},
 ) {
   let reqSkills = overrides.requiredSkills ?? ['React', 'NestJS'];
-  if (Array.isArray(reqSkills) && reqSkills.length > 0 && typeof reqSkills[0] === 'string') {
+  if (
+    Array.isArray(reqSkills) &&
+    reqSkills.length > 0 &&
+    typeof reqSkills[0] === 'string'
+  ) {
     reqSkills = reqSkills.map((s: string) => ({ skillName: s }));
   }
 
@@ -53,7 +57,9 @@ export async function createProject(
     .send(payload);
 
   if (res.status !== 201) {
-    throw new Error(`createProject failed: ${res.status} ${JSON.stringify(res.body)}`);
+    throw new Error(
+      `createProject failed: ${res.status} ${JSON.stringify(res.body)}`,
+    );
   }
   return (res.body?.data ?? res.body) as { id: string; [k: string]: any };
 }
@@ -81,9 +87,15 @@ export async function createTask(
     .send({ title: faker.lorem.words(3), priority: 'MEDIUM', ...overrides });
 
   if (res.status !== 201) {
-    throw new Error(`createTask failed: ${res.status} ${JSON.stringify(res.body)}`);
+    throw new Error(
+      `createTask failed: ${res.status} ${JSON.stringify(res.body)}`,
+    );
   }
-  return (res.body?.data ?? res.body) as { id: string; status: string; [k: string]: any };
+  return (res.body?.data ?? res.body) as {
+    id: string;
+    status: string;
+    [k: string]: any;
+  };
 }
 
 // A project with an owner and N accepted members

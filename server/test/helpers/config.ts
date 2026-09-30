@@ -8,7 +8,9 @@ export const CFG = {
     proficiency,
   }),
   inviteBody: (userId: string) => ({ userId }),
-  memberStatusBody: (status: 'ACCEPTED' | 'REJECTED' | 'PENDING') => ({ status }),
+  memberStatusBody: (status: 'ACCEPTED' | 'REJECTED' | 'PENDING') => ({
+    status,
+  }),
   socket: {
     namespace: '/chat',
     sendEvent: 'message',

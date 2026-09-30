@@ -9,7 +9,7 @@ const ctx = (role?: string): ExecutionContext =>
     switchToHttp: () => ({
       getRequest: () => ({ user: role ? { role } : undefined }),
     }),
-  } as any);
+  }) as any;
 
 describe('RolesGuard', () => {
   const make = (required?: string[]) => {

@@ -38,7 +38,7 @@ export class TransformInterceptor<T> implements NestInterceptor<
           !Array.isArray(data) &&
           'id' in data
         ) {
-          res.id = (data as any).id;
+          res.id = data.id;
         }
         return res;
       }),

@@ -52,8 +52,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     } else if (
       exception &&
       typeof exception === 'object' &&
-      (('status' in exception && typeof (exception as any).status === 'number') ||
-       ('statusCode' in exception && typeof (exception as any).statusCode === 'number'))
+      (('status' in exception &&
+        typeof (exception as any).status === 'number') ||
+        ('statusCode' in exception &&
+          typeof (exception as any).statusCode === 'number'))
     ) {
       status = (exception as any).status || (exception as any).statusCode;
       code = this.getErrorCodeFromStatus(status);
@@ -61,7 +63,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     } else if (
       exception instanceof Error &&
       (exception.message?.includes('invalid byte sequence') ||
-       exception.message?.includes('22021'))
+        exception.message?.includes('22021'))
     ) {
       status = HttpStatus.BAD_REQUEST;
       code = 'BAD_REQUEST';

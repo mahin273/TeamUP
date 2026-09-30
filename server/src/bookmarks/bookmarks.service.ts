@@ -21,9 +21,7 @@ export class BookmarksService {
       throw new NotFoundException(`Bookmark '${bookmarkId}' not found`);
     }
     if (bookmark.userId !== userId) {
-      throw new ForbiddenException(
-        "You cannot delete another user's bookmark",
-      );
+      throw new ForbiddenException("You cannot delete another user's bookmark");
     }
     await this.prisma.bookmark.delete({
       where: { id: bookmarkId },

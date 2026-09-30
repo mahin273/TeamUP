@@ -1,10 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsEnum,
-  IsNumber,
-  Min,
-} from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsNumber, Min } from 'class-validator';
 import { ExperienceLevel } from '@prisma/client';
 
 export class AddProfileSkillDto {

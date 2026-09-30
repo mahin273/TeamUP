@@ -7,7 +7,11 @@ export function baseUrl(app: INestApplication) {
   return `http://127.0.0.1:${addr.port}`;
 }
 
-export function connect(app: INestApplication, projectId: string, token?: string): Socket {
+export function connect(
+  app: INestApplication,
+  projectId: string,
+  token?: string,
+): Socket {
   return io(`${baseUrl(app)}${CFG.socket.namespace}`, {
     transports: ['websocket'],
     forceNew: true,
@@ -19,22 +23,36 @@ export function connect(app: INestApplication, projectId: string, token?: string
 
 export const onceEvent = <T = any>(s: Socket, event: string, ms = 3000) =>
   new Promise<T>((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error(`timeout waiting for "${event}"`)), ms);
-    s.once(event, (data: T) => { clearTimeout(t); resolve(data); });
+    const t = setTimeout(
+      () => reject(new Error(`timeout waiting for "${event}"`)),
+      ms,
+    );
+    s.once(event, (data: T) => {
+      clearTimeout(t);
+      resolve(data);
+    });
   });
 
 export const connected = (s: Socket, ms = 3000) =>
   new Promise<void>((resolve, reject) => {
     const t = setTimeout(() => reject(new Error('connect timeout')), ms);
-    s.on('connect', () => { clearTimeout(t); resolve(); });
-    s.on('connect_error', (e) => { clearTimeout(t); reject(e); });
+    s.on('connect', () => {
+      clearTimeout(t);
+      resolve();
+    });
+    s.on('connect_error', (e) => {
+      clearTimeout(t);
+      reject(e);
+    });
   });
 
 // Resolves true if the socket got NO such event within `ms`
 export const noEvent = (s: Socket, event: string, ms = 800) =>
   new Promise<boolean>((resolve) => {
     let got = false;
-    s.once(event, () => { got = true; });
+    s.once(event, () => {
+      got = true;
+    });
     setTimeout(() => resolve(!got), ms);
   });
 
@@ -42,6 +60,12 @@ export const noEvent = (s: Socket, event: string, ms = 800) =>
 export const refused = (s: Socket, ms = 3000) =>
   new Promise<'refused' | 'connected'>((resolve) => {
     const t = setTimeout(() => resolve('connected'), ms);
-    s.on('connect_error', () => { clearTimeout(t); resolve('refused'); });
-    s.on('disconnect', () => { clearTimeout(t); resolve('refused'); });
+    s.on('connect_error', () => {
+      clearTimeout(t);
+      resolve('refused');
+    });
+    s.on('disconnect', () => {
+      clearTimeout(t);
+      resolve('refused');
+    });
   });

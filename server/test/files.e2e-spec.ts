@@ -98,9 +98,7 @@ describe('Files (e2e)', () => {
 
   it('FILE-07 rejects a request with no file', async () => {
     const { owner, project } = await projectWithTeam(app, 0);
-    const res = await http()
-      .post(R.files(project.id))
-      .set(bearer(owner.token));
+    const res = await http().post(R.files(project.id)).set(bearer(owner.token));
     expect(res.status).toBe(400);
   });
 
@@ -114,12 +112,7 @@ describe('Files (e2e)', () => {
   describe('download (authenticated endpoint)', () => {
     const setup = async () => {
       const team = await projectWithTeam(app, 1);
-      await upload(
-        team.project.id,
-        team.owner.token,
-        'sample.pdf',
-        'spec.pdf',
-      );
+      await upload(team.project.id, team.owner.token, 'sample.pdf', 'spec.pdf');
       const file = await prisma.fileAsset.findFirstOrThrow({
         where: { projectId: team.project.id },
       });

@@ -23,7 +23,7 @@ describe('Matching & invites (e2e)', () => {
   const ids = (body: any): string[] => {
     const list = Array.isArray(body)
       ? body
-      : body.data ?? body.candidates ?? [];
+      : (body.data ?? body.candidates ?? []);
     return list.map((c: any) => c.userId ?? c.id ?? c.user?.id);
   };
 

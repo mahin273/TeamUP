@@ -22,7 +22,8 @@ export const githubMock = {
           totalStars: 0,
           topLanguages: [],
           cached: true,
-          warning: 'Live GitHub API rate-limited; showing cached profile stats.',
+          warning:
+            'Live GitHub API rate-limited; showing cached profile stats.',
         };
       case 'error':
         return {

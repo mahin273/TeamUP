@@ -75,7 +75,9 @@ describe('Auth (e2e)', () => {
     });
 
     it('AUTH-07 [EXPECTED-BUG?] ignores role=ADMIN sent by the client', async () => {
-      await http().post(R.register).send({ ...validBody(), role: 'ADMIN' });
+      await http()
+        .post(R.register)
+        .send({ ...validBody(), role: 'ADMIN' });
       const db = await prisma.user.findUnique({
         where: { email: 'test@example.com' },
       });
@@ -116,7 +118,9 @@ describe('Auth (e2e)', () => {
         wrongPw.body?.message ??
         wrongPw.body?.error;
       const msg2 =
-        noUser.body?.error?.message ?? noUser.body?.message ?? noUser.body?.error;
+        noUser.body?.error?.message ??
+        noUser.body?.message ??
+        noUser.body?.error;
       expect(msg1).toEqual(msg2);
     });
 
@@ -177,7 +181,9 @@ describe('Auth (e2e)', () => {
       const payload = Buffer.from(JSON.stringify({ sub: u.id })).toString(
         'base64url',
       );
-      const res = await http().get(R.me).set(bearer(`${header}.${payload}.`));
+      const res = await http()
+        .get(R.me)
+        .set(bearer(`${header}.${payload}.`));
       expect(res.status).toBe(401);
     });
   });
@@ -189,7 +195,9 @@ describe('Auth (e2e)', () => {
         .post(R.refresh)
         .send({ refreshToken: u.refreshToken });
       expect([200, 201]).toContain(res.status);
-      const count = await prisma.refreshToken.count({ where: { userId: u.id } });
+      const count = await prisma.refreshToken.count({
+        where: { userId: u.id },
+      });
       expect(count).toBeGreaterThan(0);
     });
 
@@ -207,14 +215,10 @@ describe('Auth (e2e)', () => {
 
     it('AUTH-17 rejects an expired refresh token', async () => {
       const u = await registerUser(app);
-      const expired = jwt.sign(
-        { sub: u.id },
-        process.env.JWT_REFRESH_SECRET!,
-        { expiresIn: -10 },
-      );
-      const res = await http()
-        .post(R.refresh)
-        .send({ refreshToken: expired });
+      const expired = jwt.sign({ sub: u.id }, process.env.JWT_REFRESH_SECRET!, {
+        expiresIn: -10,
+      });
+      const res = await http().post(R.refresh).send({ refreshToken: expired });
       expect(res.status).toBe(401);
     });
 

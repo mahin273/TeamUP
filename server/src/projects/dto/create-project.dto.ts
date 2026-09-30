@@ -14,7 +14,7 @@ import { Type } from 'class-transformer';
 import { ExperienceLevel } from '@prisma/client';
 
 export function IsValidSkillsArray(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isValidSkillsArray',
       target: object.constructor,
@@ -27,8 +27,10 @@ export function IsValidSkillsArray(validationOptions?: ValidationOptions) {
             if (typeof item === 'string') {
               if (!item.trim()) return false;
             } else if (item && typeof item === 'object') {
-              if (item.skillId && typeof item.skillId !== 'string') return false;
-              if (item.skillName && typeof item.skillName !== 'string') return false;
+              if (item.skillId && typeof item.skillId !== 'string')
+                return false;
+              if (item.skillName && typeof item.skillName !== 'string')
+                return false;
               if (!item.skillId && !item.skillName) return false;
             } else {
               return false;
@@ -93,7 +95,8 @@ export class CreateProjectDto {
 
   @IsOptional()
   @IsValidSkillsArray({
-    message: 'requiredSkills must be an array of strings or valid skill objects',
+    message:
+      'requiredSkills must be an array of strings or valid skill objects',
   })
   requiredSkills?: any[];
 }

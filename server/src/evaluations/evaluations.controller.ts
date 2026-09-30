@@ -139,12 +139,11 @@ export class EvaluationsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') projectId: string,
   ) {
-    const evaluations =
-      await this.evaluationsService.getEvaluationsByEvaluator(
-        projectId,
-        user.userId,
-        user.userId,
-      );
+    const evaluations = await this.evaluationsService.getEvaluationsByEvaluator(
+      projectId,
+      user.userId,
+      user.userId,
+    );
 
     return {
       success: true,

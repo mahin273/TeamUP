@@ -43,13 +43,10 @@ describe('Bookmarks (e2e)', () => {
 
   it('BKM-04 rejects a made-up targetType', async () => {
     const a = await registerUser(app);
-    const res = await http()
-      .post(R.bookmarks)
-      .set(bearer(a.token))
-      .send({
-        targetType: 'BANANA',
-        targetId: '00000000-0000-4000-8000-000000000000',
-      });
+    const res = await http().post(R.bookmarks).set(bearer(a.token)).send({
+      targetType: 'BANANA',
+      targetId: '00000000-0000-4000-8000-000000000000',
+    });
     expect(res.status).toBe(400);
   });
 
@@ -65,13 +62,10 @@ describe('Bookmarks (e2e)', () => {
 
   it('BKM-06 [EXPECTED-BUG?] rejects a non-existent target', async () => {
     const a = await registerUser(app);
-    const res = await http()
-      .post(R.bookmarks)
-      .set(bearer(a.token))
-      .send({
-        targetType: 'PROJECT',
-        targetId: '00000000-0000-4000-8000-000000000000',
-      });
+    const res = await http().post(R.bookmarks).set(bearer(a.token)).send({
+      targetType: 'PROJECT',
+      targetId: '00000000-0000-4000-8000-000000000000',
+    });
     expect([400, 404]).toContain(res.status);
   });
 
@@ -85,7 +79,7 @@ describe('Bookmarks (e2e)', () => {
       .set(bearer(a.token))
       .send({ targetType: 'PROJECT', targetId: project.id });
     const res = await http().get(R.bookmarks).set(bearer(b.token));
-    const list = Array.isArray(res.body) ? res.body : res.body.data ?? [];
+    const list = Array.isArray(res.body) ? res.body : (res.body.data ?? []);
     expect(list).toHaveLength(0);
   });
 

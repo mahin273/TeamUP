@@ -122,9 +122,7 @@ describe('Marketplace & search (e2e)', () => {
 
     const search = async (qs: string) => {
       const u = await registerUser(app);
-      return http()
-        .get(`${R.search}?${qs}`)
-        .set(bearer(u.token));
+      return http().get(`${R.search}?${qs}`).set(bearer(u.token));
     };
 
     it('SRCH-07 route ordering: /search is not treated as :id', async () => {
@@ -148,7 +146,7 @@ describe('Marketplace & search (e2e)', () => {
       expect(list(res.body)).toHaveLength(0);
     });
 
-    it.each(['%', '_', "'", '\\', "'; DROP TABLE \"Project\";--"])(
+    it.each(['%', '_', "'", '\\', '\'; DROP TABLE "Project";--'])(
       'SRCH-06 handles special text %p',
       async (text) => {
         const res = await search(`q=${encodeURIComponent(text)}`);

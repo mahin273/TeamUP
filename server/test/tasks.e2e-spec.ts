@@ -50,9 +50,7 @@ describe('Kanban tasks (e2e)', () => {
       .post(R.tasks(project.id))
       .set(bearer(stranger.token))
       .send({ title: 'x', priority: 'LOW' });
-    const r = await http()
-      .get(R.tasks(project.id))
-      .set(bearer(stranger.token));
+    const r = await http().get(R.tasks(project.id)).set(bearer(stranger.token));
     expect(c.status).toBe(403);
     expect(r.status).toBe(403);
   });
@@ -60,9 +58,7 @@ describe('Kanban tasks (e2e)', () => {
   it('TASK-04 a member can read the board', async () => {
     const { owner, project } = await projectWithTeam(app, 0);
     await createTask(app, project.id, owner);
-    const res = await http()
-      .get(R.tasks(project.id))
-      .set(bearer(owner.token));
+    const res = await http().get(R.tasks(project.id)).set(bearer(owner.token));
     expect(res.status).toBe(200);
   });
 
@@ -72,22 +68,25 @@ describe('Kanban tasks (e2e)', () => {
       statuses.filter((to) => to !== from).map((to) => [from, to]),
     );
 
-    it.each(pairs)('TASK-06 %s -> %s is currently allowed', async (from, to) => {
-      const { owner, project } = await projectWithTeam(app, 0);
-      const task = await createTask(app, project.id, owner);
-      await prisma.task.update({
-        where: { id: task.id },
-        data: { status: from as any },
-      });
-      const res = await http()
-        .patch(R.task(task.id))
-        .set(bearer(owner.token))
-        .send({ status: to });
-      expect(res.status).toBe(200);
-      expect(
-        (await prisma.task.findUnique({ where: { id: task.id } }))?.status,
-      ).toBe(to);
-    });
+    it.each(pairs)(
+      'TASK-06 %s -> %s is currently allowed',
+      async (from, to) => {
+        const { owner, project } = await projectWithTeam(app, 0);
+        const task = await createTask(app, project.id, owner);
+        await prisma.task.update({
+          where: { id: task.id },
+          data: { status: from as any },
+        });
+        const res = await http()
+          .patch(R.task(task.id))
+          .set(bearer(owner.token))
+          .send({ status: to });
+        expect(res.status).toBe(200);
+        expect(
+          (await prisma.task.findUnique({ where: { id: task.id } }))?.status,
+        ).toBe(to);
+      },
+    );
 
     it('TASK-07 a DONE task can be reopened', async () => {
       const { owner, project } = await projectWithTeam(app, 0);

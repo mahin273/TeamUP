@@ -45,29 +45,32 @@ describe('Security sweep (e2e)', () => {
     }
   });
 
-  it.each(INJECTIONS)('SEC-03 no 500 from hostile input %#', async (payload) => {
-    const u = await registerUser(app);
-    const results = await Promise.all([
-      http()
-        .post(R.projects)
-        .set(bearer(u.token))
-        .send({
-          title: payload,
-          description: payload,
-          domain: payload,
-          requiredSkills: [payload],
-          teamSizeNeeded: 2,
-        }),
-      http()
-        .get(`${R.search}?q=${encodeURIComponent(payload.slice(0, 500))}`)
-        .set(bearer(u.token)),
-      http().patch(R.me).set(bearer(u.token)).send({ bio: payload }),
-      http().post(R.login).send({ email: payload, password: payload }),
-    ]);
-    for (const r of results) {
-      expect(r.status).toBeLessThan(500);
-    }
-  });
+  it.each(INJECTIONS)(
+    'SEC-03 no 500 from hostile input %#',
+    async (payload) => {
+      const u = await registerUser(app);
+      const results = await Promise.all([
+        http()
+          .post(R.projects)
+          .set(bearer(u.token))
+          .send({
+            title: payload,
+            description: payload,
+            domain: payload,
+            requiredSkills: [payload],
+            teamSizeNeeded: 2,
+          }),
+        http()
+          .get(`${R.search}?q=${encodeURIComponent(payload.slice(0, 500))}`)
+          .set(bearer(u.token)),
+        http().patch(R.me).set(bearer(u.token)).send({ bio: payload }),
+        http().post(R.login).send({ email: payload, password: payload }),
+      ]);
+      for (const r of results) {
+        expect(r.status).toBeLessThan(500);
+      }
+    },
+  );
 
   it('SEC-05 errors never leak stack traces, SQL or file paths', async () => {
     const u = await registerUser(app);

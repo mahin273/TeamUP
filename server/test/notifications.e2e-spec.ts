@@ -24,7 +24,7 @@ describe('Notifications (e2e)', () => {
       ? b
       : Array.isArray(b?.data)
         ? b.data
-        : b?.data?.notifications ?? b?.items ?? [];
+        : (b?.data?.notifications ?? b?.items ?? []);
 
   it('NOTIF-01/05 assignment creates an in-app notification even with no push token', async () => {
     const { owner, members, project } = await projectWithTeam(app, 1);
@@ -33,9 +33,7 @@ describe('Notifications (e2e)', () => {
       .patch(R.task(task.id))
       .set(bearer(owner.token))
       .send({ assigneeId: members[0].id });
-    const res = await http()
-      .get(R.notifications)
-      .set(bearer(members[0].token));
+    const res = await http().get(R.notifications).set(bearer(members[0].token));
     expect(res.status).toBe(200);
     expect(list(res.body).length).toBeGreaterThan(0);
   });

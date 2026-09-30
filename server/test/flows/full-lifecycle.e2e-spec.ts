@@ -50,9 +50,7 @@ describe('FLOW-01 full project lifecycle', () => {
         .set(bearer(leader.token))
         .send(CFG.inviteBody(u.id));
     }
-    const locked = await http()
-      .get(R.tasks(project.id))
-      .set(bearer(dev.token));
+    const locked = await http().get(R.tasks(project.id)).set(bearer(dev.token));
     expect(locked.status).toBe(403);
 
     // 5. leader accepts both
@@ -69,9 +67,7 @@ describe('FLOW-01 full project lifecycle', () => {
     }
 
     // 6. now the workspace is open
-    const open = await http()
-      .get(R.tasks(project.id))
-      .set(bearer(dev.token));
+    const open = await http().get(R.tasks(project.id)).set(bearer(dev.token));
     expect(open.status).toBe(200);
 
     // 7. task assigned and moved through the board
@@ -109,7 +105,9 @@ describe('FLOW-01 full project lifecycle', () => {
     const m = await http()
       .post(R.meetings(project.id))
       .set(bearer(leader.token))
-      .send(CFG.meeting.body('Demo prep', [{ startTime: start, endTime: end }]));
+      .send(
+        CFG.meeting.body('Demo prep', [{ startTime: start, endTime: end }]),
+      );
     expect(m.status).toBe(201);
     const meetingId = m.body.id || m.body.data?.id;
 
@@ -200,9 +198,9 @@ describe('FLOW-01 full project lifecycle', () => {
     expect(
       await prisma.projectMember.count({ where: { projectId: project.id } }),
     ).toBe(0);
-    expect(
-      await prisma.task.count({ where: { projectId: project.id } }),
-    ).toBe(0);
+    expect(await prisma.task.count({ where: { projectId: project.id } })).toBe(
+      0,
+    );
 
     const getAfterDel = await http()
       .get(R.project(project.id))

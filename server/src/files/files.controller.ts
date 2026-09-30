@@ -108,10 +108,7 @@ export class FilesController {
       if (projectId && file.projectId !== projectId) {
         throw new NotFoundException('File does not belong to this project');
       }
-      const filePath = await this.filesService.getFilePath(
-        fileId,
-        user.userId,
-      );
+      const filePath = await this.filesService.getFilePath(fileId, user.userId);
 
       // Set headers for file download
       res.setHeader('Content-Type', file.mimeType);

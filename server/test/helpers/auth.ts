@@ -32,7 +32,8 @@ export async function registerUser(
 ): Promise<TestUser> {
   const password = overrides.password ?? 'Str0ng!Pass123';
   const email = (overrides.email ?? faker.internet.email()).toLowerCase();
-  const fullName = overrides.fullName ?? overrides.name ?? faker.person.fullName();
+  const fullName =
+    overrides.fullName ?? overrides.name ?? faker.person.fullName();
   const body = {
     fullName,
     email,
@@ -42,12 +43,18 @@ export async function registerUser(
 
   const reg = await request(app.getHttpServer()).post(R.register).send(body);
   if (![200, 201].includes(reg.status)) {
-    throw new Error(`register failed: ${reg.status} ${JSON.stringify(reg.body)}`);
+    throw new Error(
+      `register failed: ${reg.status} ${JSON.stringify(reg.body)}`,
+    );
   }
 
-  const login = await request(app.getHttpServer()).post(R.login).send({ email, password });
+  const login = await request(app.getHttpServer())
+    .post(R.login)
+    .send({ email, password });
   if (login.status !== 200 && login.status !== 201) {
-    throw new Error(`login failed: ${login.status} ${JSON.stringify(login.body)}`);
+    throw new Error(
+      `login failed: ${login.status} ${JSON.stringify(login.body)}`,
+    );
   }
 
   const dbUser = await prisma.user.findUnique({ where: { email } });

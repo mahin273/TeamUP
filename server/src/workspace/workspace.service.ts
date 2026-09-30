@@ -287,11 +287,7 @@ export class WorkspaceService {
   /**
    * Create a new task
    */
-  async createTask(
-    projectId: string,
-    userId: string,
-    dto: CreateTaskDto,
-  ) {
+  async createTask(projectId: string, userId: string, dto: CreateTaskDto) {
     await this.verifyProjectMembership(projectId, userId);
 
     // Verify assignee is also a project member if provided

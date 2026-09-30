@@ -54,7 +54,7 @@ export class LlmClient {
       throw new Error(`LLM API returned status ${response.status}`);
     }
 
-    const data = (await response.json()) as any;
+    const data = await response.json();
     if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
       return data.candidates[0].content.parts[0].text;
     } else if (data?.choices?.[0]?.message?.content) {

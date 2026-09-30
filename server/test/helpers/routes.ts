@@ -22,7 +22,8 @@ export const R = {
   task: (taskId: string) => `${P}/workspace/tasks/${taskId}`,
 
   files: (pid: string) => `${P}/projects/${pid}/files`,
-  download: (pid: string, fid: string) => `${P}/projects/${pid}/files/${fid}/download`,
+  download: (pid: string, fid: string) =>
+    `${P}/projects/${pid}/files/${fid}/download`,
 
   meetings: (pid: string) => `${P}/projects/${pid}/meetings`,
   vote: (mid: string) => `${P}/meetings/${mid}/vote`,

@@ -21,7 +21,14 @@ const skillTagProxy = {
 const userProxy = new Proxy((prisma as any).user, {
   get(target, prop, receiver) {
     const orig = Reflect.get(target, prop, receiver);
-    if (['findUnique', 'findFirst', 'findUniqueOrThrow', 'findFirstOrThrow'].includes(String(prop))) {
+    if (
+      [
+        'findUnique',
+        'findFirst',
+        'findUniqueOrThrow',
+        'findFirstOrThrow',
+      ].includes(String(prop))
+    ) {
       return async (...args: any[]) => {
         const user = await orig.apply(target, args);
         if (user && typeof user === 'object') {
@@ -87,13 +94,9 @@ const messageProxy = new Proxy((prisma as any).message, {
   get(target, prop, receiver) {
     const orig = Reflect.get(target, prop, receiver);
     if (
-      [
-        'create',
-        'createMany',
-        'findUnique',
-        'findFirst',
-        'findMany',
-      ].includes(String(prop))
+      ['create', 'createMany', 'findUnique', 'findFirst', 'findMany'].includes(
+        String(prop),
+      )
     ) {
       return async (...args: any[]) => {
         const fixData = (d: any) => {
@@ -249,11 +252,17 @@ const peerEvaluationProxy = new Proxy((prisma as any).peerEvaluation, {
 });
 
 Object.defineProperty(prisma, 'skillTag', { get: () => skillTagProxy });
-Object.defineProperty(prisma, 'fileAsset', { get: () => (prisma as any).projectFile });
+Object.defineProperty(prisma, 'fileAsset', {
+  get: () => (prisma as any).projectFile,
+});
 Object.defineProperty(prisma, 'evaluation', { get: () => peerEvaluationProxy });
-Object.defineProperty(prisma, 'peerEvaluation', { get: () => peerEvaluationProxy });
+Object.defineProperty(prisma, 'peerEvaluation', {
+  get: () => peerEvaluationProxy,
+});
 Object.defineProperty(prisma, 'user', { get: () => userProxy });
-Object.defineProperty(prisma, 'projectMember', { get: () => projectMemberProxy });
+Object.defineProperty(prisma, 'projectMember', {
+  get: () => projectMemberProxy,
+});
 Object.defineProperty(prisma, 'message', { get: () => messageProxy });
 Object.defineProperty(prisma, 'meetingVote', { get: () => meetingVoteProxy });
 Object.defineProperty(prisma, 'meeting', { get: () => meetingProxy });
@@ -265,5 +274,7 @@ export async function resetDb() {
   );
   if (!tables.length) return;
   const list = tables.map((t) => `"public"."${t.tablename}"`).join(', ');
-  await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE;`);
+  await prisma.$executeRawUnsafe(
+    `TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE;`,
+  );
 }
