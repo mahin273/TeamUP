@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Platform, Linking } from 'react-native';
 import { tokenStorage } from '../services/tokenStorage';
 import { api, ApiError } from '../api/client';
 import { pushNotificationService } from '../services/pushNotificationService';
@@ -32,7 +33,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  loginWithGithub: (code: string) => Promise<void>;
+  loginWithGithub: (code: string, redirectUri?: string) => Promise<void>;
   register: (fullName: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updatedUser: Partial<UserProfile>) => void;
@@ -60,6 +61,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginWithGithub = async (code: string, redirectUri?: string): Promise<void> => {
+    setIsLoading(true);
+    try {
+      const payload: { code: string; redirectUri?: string } = { code };
+      if (redirectUri) {
+        payload.redirectUri = redirectUri;
+      }
+      const res = await api.post<any>('/auth/github', payload);
+      const accessToken = res?.tokens?.accessToken || res?.accessToken;
+      const refreshToken = res?.tokens?.refreshToken || res?.refreshToken;
+
+      if (accessToken) {
+        await tokenStorage.setAccessToken(accessToken);
+        if (refreshToken) {
+          await tokenStorage.setRefreshToken(refreshToken);
+        }
+        setToken(accessToken);
+
+        if (res.user) {
+          setUser(res.user);
+        } else {
+          try {
+            const profile = await api.get<UserProfile>('/profiles/me');
+            setUser(profile);
+          } catch {
+            setUser({ email: '', fullName: 'GitHub User' });
+          }
+        }
+
+        await pushNotificationService.registerDevicePushToken();
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -67,30 +104,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         let storedToken = await tokenStorage.getAccessToken();
 
-        // Check if there is a GitHub OAuth code in the URL
-        if (typeof window !== 'undefined' && window.location.search) {
+        // Check if there is a GitHub OAuth code in the URL (Web)
+        if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.search) {
           const params = new URLSearchParams(window.location.search);
           const code = params.get('code');
           if (code) {
             try {
-              const res = await api.post<any>('/auth/github', { code });
-              const accessToken = res?.tokens?.accessToken || res?.accessToken;
-              const refreshToken = res?.tokens?.refreshToken || res?.refreshToken;
-
-              if (accessToken) {
-                await tokenStorage.setAccessToken(accessToken);
-                if (refreshToken) {
-                  await tokenStorage.setRefreshToken(refreshToken);
-                }
-                storedToken = accessToken;
-                // Clear the URL param
-                window.history.replaceState({}, document.title, window.location.pathname);
-              }
-            } catch (err) {
-              console.error('GitHub login failed:', err);
-              // Clear the URL param on error too
               window.history.replaceState({}, document.title, window.location.pathname);
+              await loginWithGithub(code, window.location.origin);
+              return;
+            } catch (err) {
+              console.error('GitHub web OAuth login failed:', err);
             }
+          }
+        }
+
+        // Check if there is a GitHub OAuth deep link URL (Mobile cold start)
+        if (Platform.OS !== 'web' && Linking.getInitialURL) {
+          try {
+            const initialUrl = await Linking.getInitialURL();
+            if (initialUrl) {
+              const match = initialUrl.match(/[?&]code=([^&]+)/);
+              const code = match ? decodeURIComponent(match[1]) : null;
+              if (code) {
+                await loginWithGithub(code, 'teamup://github-callback');
+                return;
+              }
+            }
+          } catch (err) {
+            console.error('GitHub native initial URL check failed:', err);
           }
         }
 
@@ -125,8 +167,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     loadAuth();
 
+    const subscription = Linking.addEventListener?.('url', async ({ url }) => {
+      const match = url.match(/[?&]code=([^&]+)/);
+      const code = match ? decodeURIComponent(match[1]) : null;
+      if (code) {
+        try {
+          await loginWithGithub(code, 'teamup://github-callback');
+        } catch (err) {
+          console.error('GitHub runtime deep link login failed:', err);
+        }
+      }
+    });
+
     return () => {
       isMounted = false;
+      subscription?.remove?.();
     };
   }, []);
 
@@ -161,38 +216,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         // Register push notification token
-        await pushNotificationService.registerDevicePushToken();
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loginWithGithub = async (code: string): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const res = await api.post<any>('/auth/github', { code });
-      const accessToken = res?.tokens?.accessToken || res?.accessToken;
-      const refreshToken = res?.tokens?.refreshToken || res?.refreshToken;
-
-      if (accessToken) {
-        await tokenStorage.setAccessToken(accessToken);
-        if (refreshToken) {
-          await tokenStorage.setRefreshToken(refreshToken);
-        }
-        setToken(accessToken);
-
-        if (res.user) {
-          setUser(res.user);
-        } else {
-          try {
-            const profile = await api.get<UserProfile>('/profiles/me');
-            setUser(profile);
-          } catch {
-            setUser({ email: '', fullName: 'GitHub User' });
-          }
-        }
-
         await pushNotificationService.registerDevicePushToken();
       }
     } finally {

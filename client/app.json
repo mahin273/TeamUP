@@ -2,6 +2,7 @@
   "expo": {
     "name": "TeamUp",
     "slug": "teamup-client",
+    "scheme": "teamup",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",

@@ -17,9 +17,11 @@ import { GitHubIcon } from '../../components/GitHubIcon';
 import { useAuth } from '../../context/AuthContext';
 import { api, ApiError } from '../../api/client';
 
+import * as WebBrowser from 'expo-web-browser';
+
 export const RegisterScreen = ({ navigation }: any) => {
   const { colors, typography, spacing, borderRadius } = useTheme();
-  const { register } = useAuth();
+  const { register, loginWithGithub } = useAuth();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -56,7 +58,16 @@ export const RegisterScreen = ({ navigation }: any) => {
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
         window.location.href = targetUrl;
       } else {
-        await Linking.openURL(targetUrl);
+        const result = await WebBrowser.openAuthSessionAsync(targetUrl, redirectUri);
+        if (result.type === 'success' && result.url) {
+          const match = result.url.match(/[?&]code=([^&]+)/);
+          const code = match ? decodeURIComponent(match[1]) : null;
+          if (code && loginWithGithub) {
+            await loginWithGithub(code, redirectUri);
+          } else if (!code) {
+            setErrorMsg('GitHub authorization did not return an authorization code.');
+          }
+        }
       }
     } catch (err: any) {
       setErrorMsg(err?.message || 'Failed to initiate GitHub authorization.');

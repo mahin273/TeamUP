@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { Badge } from './Badge';
 import { Button } from './Button';
 import { GitHubIcon } from './GitHubIcon';
 import { api } from '../api/client';
+import * as WebBrowser from 'expo-web-browser';
 
 export interface GitHubStats {
   username?: string;
@@ -45,53 +46,59 @@ export const GitHubStatsCard: React.FC<GitHubStatsCardProps> = ({
   const [stats, setStats] = useState<GitHubStats | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [failed, setFailed] = useState<boolean>(false);
+  const isMountedRef = useRef<boolean>(true);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    async function fetchGithubStats() {
-      if (!profileId) {
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setFailed(false);
-
-      try {
-        const data = await api.get<GitHubStats>(`/profiles/${profileId}/github`);
-        if (isMounted) {
-          setStats(data);
-        }
-      } catch {
-        if (isMounted) {
-          // Graceful fallback per Design Doc §6.4
-          setFailed(true);
-          if (githubUsername) {
-            setStats({
-              username: githubUsername,
-              connected: true,
-              publicRepos: 0,
-              contributionsThisYear: 0,
-              topLanguages: [],
-            });
-          }
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
+  const fetchGithubStats = async () => {
+    if (!profileId) {
+      if (isMountedRef.current) setLoading(false);
+      return;
     }
 
-    fetchGithubStats();
+    if (isMountedRef.current) {
+      setLoading(true);
+      setFailed(false);
+    }
 
+    try {
+      const data = await api.get<GitHubStats>(`/profiles/${profileId}/github`);
+      if (isMountedRef.current) {
+        setStats(data);
+      }
+    } catch {
+      // Graceful fallback per Design Doc §6.4
+      if (isMountedRef.current) {
+        setFailed(true);
+        if (githubUsername) {
+          setStats({
+            username: githubUsername,
+            connected: true,
+            publicRepos: 0,
+            contributionsThisYear: 0,
+            topLanguages: [],
+          });
+        }
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    fetchGithubStats();
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
     };
   }, [profileId, githubUsername]);
 
   const handleOAuthConnect = async () => {
+    if (onConnectPress) {
+      onConnectPress();
+      return;
+    }
+
     const redirectUri =
       Platform.OS === 'web' && typeof window !== 'undefined'
         ? window.location.origin
@@ -115,7 +122,22 @@ export const GitHubStatsCard: React.FC<GitHubStatsCardProps> = ({
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       window.location.href = targetUrl;
     } else {
-      await Linking.openURL(targetUrl);
+      const result = await WebBrowser.openAuthSessionAsync(targetUrl, redirectUri);
+      if (result.type === 'success' && result.url) {
+        const match = result.url.match(/[?&]code=([^&]+)/);
+        const code = match ? decodeURIComponent(match[1]) : null;
+        if (code) {
+          try {
+            setLoading(true);
+            await api.post('/github/link', { code, redirectUri });
+            await fetchGithubStats();
+          } catch {
+            setFailed(true);
+          } finally {
+            setLoading(false);
+          }
+        }
+      }
     }
   };
 
