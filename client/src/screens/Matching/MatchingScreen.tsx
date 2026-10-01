@@ -15,6 +15,7 @@ import { Chip } from '../../components/Chip';
 import { Button } from '../../components/Button';
 import { StateWrapper, ScreenState } from '../../components/StateWrapper';
 import { api } from '../../api/client';
+import { useNavigation } from '@react-navigation/native';
 
 export interface MatchingCandidate {
   id: string;
@@ -49,8 +50,15 @@ const POPULAR_SKILLS = [
   'Docker',
 ];
 
-export const MatchingScreen: React.FC = () => {
+export const MatchingScreen: React.FC<{ navigation?: any }> = ({ navigation: propNavigation }) => {
   const { colors, typography, spacing } = useTheme();
+  let navigationHook: any;
+  try {
+    navigationHook = useNavigation();
+  } catch {
+    // Graceful fallback for non-navigation contexts
+  }
+  const navigation = propNavigation || navigationHook;
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeTarget, setActiveTarget] = useState<string>('project-1');
@@ -441,7 +449,22 @@ export const MatchingScreen: React.FC = () => {
                 >
                   {/* Candidate Header Row */}
                   <View style={styles.rankRow}>
-                    <View style={styles.candidateHeader}>
+                    <TouchableOpacity
+                      style={styles.candidateHeader}
+                      onPress={() => {
+                        if (navigation) {
+                          const inviteProjectId = activeTarget.startsWith('project-') ? activeTarget : 'project-1';
+                          navigation.navigate('UserProfile', {
+                            userId: targetUserId,
+                            userName: candidate.fullName,
+                            projectId: inviteProjectId,
+                            invited: status === 'invited',
+                          });
+                        }
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`View ${candidate.fullName}'s profile`}
+                    >
                       <View
                         style={[
                           styles.avatar,
@@ -479,7 +502,7 @@ export const MatchingScreen: React.FC = () => {
                           {candidate.department || candidate.experienceLevel || 'Software Developer'}
                         </Text>
                       </View>
-                    </View>
+                    </TouchableOpacity>
 
                     {/* Readable Match Score Badge */}
                     <Badge
@@ -615,6 +638,23 @@ export const MatchingScreen: React.FC = () => {
                         disabled={status === 'inviting'}
                       />
                     )}
+
+                    <Button
+                      title="View Profile"
+                      variant="outline"
+                      onPress={() => {
+                        if (navigation) {
+                          const inviteProjectId = activeTarget.startsWith('project-') ? activeTarget : 'project-1';
+                          navigation.navigate('UserProfile', {
+                            userId: targetUserId,
+                            userName: candidate.fullName,
+                            projectId: inviteProjectId,
+                            invited: status === 'invited',
+                          });
+                        }
+                      }}
+                      style={{ marginTop: 8 }}
+                    />
                   </View>
                 </Card>
               );

@@ -31,12 +31,14 @@ export interface GitHubStatsCardProps {
   profileId: string;
   githubUsername?: string;
   onConnectPress?: () => void;
+  readOnly?: boolean;
 }
 
 export const GitHubStatsCard: React.FC<GitHubStatsCardProps> = ({
   profileId,
   githubUsername,
   onConnectPress,
+  readOnly = false,
 }) => {
   const { colors, typography, spacing } = useTheme();
 
@@ -133,6 +135,27 @@ export const GitHubStatsCard: React.FC<GitHubStatsCardProps> = ({
   const isConnected = stats?.connected || !!githubUsername;
 
   if (!isConnected) {
+    if (readOnly) {
+      return (
+        <Card style={[styles.card, { marginTop: spacing.md }]}>
+          <View style={styles.headerRow}>
+            <Text
+              style={[
+                styles.title,
+                { color: colors.onSurface, fontSize: typography.titleMedium.fontSize },
+              ]}
+            >
+              GitHub Activity
+            </Text>
+            <Badge label="Not Connected" variant="secondary" />
+          </View>
+          <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
+            This member has not connected their GitHub profile yet.
+          </Text>
+        </Card>
+      );
+    }
+
     return (
       <Card style={[styles.card, { marginTop: spacing.md }]}>
         <View style={styles.headerRow}>

@@ -15,6 +15,7 @@ import { SchedulerScreen } from '../screens/Scheduler/SchedulerScreen';
 import { NotificationsScreen } from '../screens/Notifications/NotificationsScreen';
 import { BookmarksScreen } from '../screens/Bookmarks/BookmarksScreen';
 import { ProfileScreen } from '../screens/Profile/ProfileScreen';
+import { UserProfileScreen } from '../screens/Profile/UserProfileScreen';
 import { SettingsScreen } from '../screens/Settings/SettingsScreen';
 import { StateWrapper } from '../components/StateWrapper';
 
@@ -33,6 +34,7 @@ export type RootStackParamList = {
   Notifications: undefined;
   Bookmarks: undefined;
   Profile: undefined;
+  UserProfile: { userId: string; userName?: string; projectId?: string; invited?: boolean };
   Settings: undefined;
 };
 
@@ -94,6 +96,7 @@ export const RootNavigator = () => {
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="Bookmarks" component={BookmarksScreen} />
             <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="UserProfile" component={UserProfileScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
           </>
         ) : (
