@@ -159,7 +159,9 @@ export class AuthService {
 
     private async sendOtpEmail(email: string, code: string): Promise<void> {
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: this.configService.get<string>('SMTP_HOST', 'smtp.gmail.com'),
+      port: this.configService.get<number>('SMTP_PORT', 587),
+      secure: false, // true for 465, false for other ports
       auth: {
         user: this.configService.get<string>('SMTP_USER'),
         pass: this.configService.get<string>('SMTP_PASS'),
@@ -167,8 +169,9 @@ export class AuthService {
     });
 
     try {
+      const fromEmail = this.configService.get<string>('SMTP_FROM', 'noreply@teamup.local');
       await transporter.sendMail({
-        from: '"TeamUp Verification" <noreply@teamup.local>',
+        from: `"TeamUp Verification" <${fromEmail}>`,
         to: email,
         subject: 'Your TeamUp Verification Code',
         text: `Your TeamUp verification code is: ${code}. It will expire in 15 minutes.`,
